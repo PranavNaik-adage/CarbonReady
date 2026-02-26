@@ -6,7 +6,7 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
 
 ## Tasks
 
-- [ ] 1. Set up AWS infrastructure and project structure
+- [x] 1. Set up AWS infrastructure and project structure
   - Create AWS CDK project structure with Python
   - Define DynamoDB table schemas (SensorData, FarmMetadata, CarbonCalculations, AIModelRegistry, SensorCalibration, CRIWeights)
   - Define S3 bucket structure with lifecycle policies
@@ -14,8 +14,8 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
   - Configure CloudWatch logging and SNS topics
   - _Requirements: 3.1, 3.4, 3.5, 3.6, 11.1, 11.3, 11.4, 11.5, 12.1, 12.2, 12.4, 12.5, 12.6, 14.1, 14.4_
 
-- [ ] 2. Implement ESP32 sensor firmware
-  - [ ] 2.1 Create sensor reading module
+- [-] 2. Implement ESP32 sensor firmware
+  - [-] 2.1 Create sensor reading module
     - Implement functions to read soil moisture, soil temperature, air temperature, and humidity
     - Add UTC timestamp generation
     - Ensure readings occur at 15-minute intervals
