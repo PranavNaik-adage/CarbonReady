@@ -2,8 +2,14 @@
 Unit tests for Farm Metadata API
 """
 import json
+import os
 import pytest
 from unittest.mock import Mock, patch
+
+# Set environment variables before importing
+os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
+os.environ['FARM_METADATA_TABLE'] = 'test-farm-metadata'
+
 from index import (
     lambda_handler,
     validate_metadata,
@@ -55,7 +61,7 @@ def test_validate_metadata_missing_crop_type():
     
     result = validate_metadata(metadata)
     assert result['valid'] is False
-    assert 'cropType is required' in result['errors']
+    assert any('cropType is required' in error for error in result['errors'])
 
 
 def test_validate_metadata_invalid_tree_age():

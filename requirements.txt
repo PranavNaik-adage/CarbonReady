@@ -7,3 +7,6 @@ pandas
 flask
 fastapi
 requests
+boto3
+pytest
+moto
