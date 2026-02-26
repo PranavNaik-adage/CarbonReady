@@ -46,11 +46,11 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 31: Sensor Transmission Retry Behavior**
     - **Validates: Requirements 14.2**
 
-- [ ] 3. Checkpoint - Verify sensor firmware compiles and basic MQTT connectivity works
+- [x] 3. Checkpoint - Verify sensor firmware compiles and basic MQTT connectivity works
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement Data Ingestion Lambda
-  - [ ] 4.1 Create Lambda function for data ingestion
+- [x] 4. Implement Data Ingestion Lambda
+  - [x] 4.1 Create Lambda function for data ingestion
     - Parse incoming MQTT messages from IoT Core
     - Implement cryptographic hash verification
     - Validate sensor data ranges (soil moisture: 0-100%, temperature: -10°C to 60°C, humidity: 0-100%)
@@ -74,8 +74,8 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - Test uncalibrated sensor rejection
     - _Requirements: 3.3, 15.4, 16.5, 18.1_
 
-- [ ] 5. Implement Farm Metadata Service
-  - [ ] 5.1 Create API Lambda for farm metadata management
+- [x] 5. Implement Farm Metadata Service
+  - [x] 5.1 Create API Lambda for farm metadata management
     - Implement POST /api/v1/farms/{farmId}/metadata endpoint
     - Implement GET /api/v1/farms/{farmId}/metadata endpoint
     - Implement PUT /api/v1/farms/{farmId}/metadata endpoint
