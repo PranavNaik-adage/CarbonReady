@@ -14,8 +14,8 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
   - Configure CloudWatch logging and SNS topics
   - _Requirements: 3.1, 3.4, 3.5, 3.6, 11.1, 11.3, 11.4, 11.5, 12.1, 12.2, 12.4, 12.5, 12.6, 14.1, 14.4_
 
-- [-] 2. Implement ESP32 sensor firmware
-  - [-] 2.1 Create sensor reading module
+- [x] 2. Implement ESP32 sensor firmware
+  - [x] 2.1 Create sensor reading module
     - Implement functions to read soil moisture, soil temperature, air temperature, and humidity
     - Add UTC timestamp generation
     - Ensure readings occur at 15-minute intervals
@@ -25,7 +25,7 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 1: Sensor Collection Interval Compliance**
     - **Validates: Requirements 1.1, 1.2, 1.3, 1.4**
   
-  - [ ] 2.3 Implement data payload creation with cryptographic hashing
+  - [x] 2.3 Implement data payload creation with cryptographic hashing
     - Create JSON payload with sensor readings and farm ID
     - Compute SHA-256 hash of payload
     - Compress data before transmission
@@ -35,7 +35,7 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 37: Cryptographic Hash Inclusion**
     - **Validates: Requirements 16.1, 16.2**
   
-  - [ ] 2.5 Implement MQTT client with retry logic
+  - [x] 2.5 Implement MQTT client with retry logic
     - Connect to AWS IoT Core using X.509 certificates
     - Publish to carbonready/farm/{farmId}/sensor/data topic
     - Implement exponential backoff retry (3 attempts)
