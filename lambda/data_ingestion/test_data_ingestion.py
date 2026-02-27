@@ -6,7 +6,7 @@ import os
 import hashlib
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Set environment variables before importing
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
@@ -22,6 +22,18 @@ from index import (
     validate_sensor_data,
     check_calibration_status
 )
+
+
+def create_mock_context():
+    """Create a mock Lambda context object"""
+    context = Mock()
+    context.request_id = 'test-request-id-12345'
+    context.function_name = 'test-data-ingestion'
+    context.function_version = '$LATEST'
+    context.invoked_function_arn = 'arn:aws:lambda:us-east-1:123456789012:function:test'
+    context.memory_limit_in_mb = 512
+    context.aws_request_id = 'test-request-id-12345'
+    return context
 
 
 def create_test_payload(readings=None):
@@ -184,8 +196,9 @@ def test_lambda_handler_success(mock_dynamodb, mock_s3, mock_sns):
     
     # Create valid payload
     event = create_test_payload()
+    context = create_mock_context()
     
-    result = lambda_handler(event, None)
+    result = lambda_handler(event, context)
     
     assert result['status'] == 'success'
     mock_table.put_item.assert_called_once()
@@ -199,7 +212,9 @@ def test_lambda_handler_hash_mismatch(mock_dynamodb, mock_sns):
     event = create_test_payload()
     event['hash'] = 'invalid_hash'
     
-    result = lambda_handler(event, None)
+    context = create_mock_context()
+    
+    result = lambda_handler(event, context)
     
     assert result['status'] == 'rejected'
     assert result['reason'] == 'hash_mismatch'
@@ -210,8 +225,9 @@ def test_lambda_handler_hash_mismatch(mock_dynamodb, mock_sns):
 def test_lambda_handler_validation_failed(mock_dynamodb):
     """Test data ingestion with validation failure"""
     event = create_test_payload({'soilMoisture': 150, 'soilTemperature': 25, 'airTemperature': 28, 'humidity': 65})
+    context = create_mock_context()
     
-    result = lambda_handler(event, None)
+    result = lambda_handler(event, context)
     
     assert result['status'] == 'rejected'
     assert result['reason'] == 'validation_failed'
@@ -227,8 +243,9 @@ def test_lambda_handler_calibration_invalid(mock_dynamodb):
     mock_table.query.return_value = {'Items': []}
     
     event = create_test_payload()
+    context = create_mock_context()
     
-    result = lambda_handler(event, None)
+    result = lambda_handler(event, context)
     
     assert result['status'] == 'rejected'
     assert result['reason'] == 'calibration_invalid'

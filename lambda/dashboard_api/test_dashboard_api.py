@@ -21,6 +21,19 @@ sys.path.insert(0, os.path.dirname(__file__))
 import index
 
 
+def create_mock_context():
+    """Create a mock Lambda context object"""
+    from unittest.mock import Mock
+    context = Mock()
+    context.request_id = 'test-request-id-12345'
+    context.function_name = 'test-dashboard-api'
+    context.function_version = '$LATEST'
+    context.invoked_function_arn = 'arn:aws:lambda:us-east-1:123456789012:function:test'
+    context.memory_limit_in_mb = 512
+    context.aws_request_id = 'test-request-id-12345'
+    return context
+
+
 @pytest.fixture
 def mock_dynamodb():
     """Mock DynamoDB resource"""
@@ -94,7 +107,7 @@ class TestCarbonPosition:
         mock_dynamodb.Table.return_value = mock_table
         
         # Call function
-        result = index.get_carbon_position('farm-001')
+        result = index.get_carbon_position('farm-001', create_mock_context())
         
         # Verify response
         assert result['statusCode'] == 200
@@ -110,7 +123,7 @@ class TestCarbonPosition:
         mock_table.query.return_value = {'Items': []}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_carbon_position('farm-999')
+        result = index.get_carbon_position('farm-999', create_mock_context())
         
         assert result['statusCode'] == 404
         body = json.loads(result['body'])
@@ -126,7 +139,7 @@ class TestCarbonPosition:
         mock_table.query.return_value = {'Items': [sample_carbon_calculation]}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_carbon_position('farm-001')
+        result = index.get_carbon_position('farm-001', create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -142,7 +155,7 @@ class TestCarbonReadinessIndex:
         mock_table.query.return_value = {'Items': [sample_carbon_calculation]}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_carbon_readiness_index('farm-001')
+        result = index.get_carbon_readiness_index('farm-001', create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -168,7 +181,7 @@ class TestCarbonReadinessIndex:
         mock_table.query.return_value = {'Items': []}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_carbon_readiness_index('farm-999')
+        result = index.get_carbon_readiness_index('farm-999', create_mock_context())
         
         assert result['statusCode'] == 404
         body = json.loads(result['body'])
@@ -184,7 +197,7 @@ class TestSensorData:
         mock_table.query.return_value = {'Items': [sample_sensor_data]}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_latest_sensor_data('farm-001')
+        result = index.get_latest_sensor_data('farm-001', create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -199,7 +212,7 @@ class TestSensorData:
         mock_table.query.return_value = {'Items': []}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_latest_sensor_data('farm-999')
+        result = index.get_latest_sensor_data('farm-999', create_mock_context())
         
         assert result['statusCode'] == 404
         body = json.loads(result['body'])
@@ -223,7 +236,7 @@ class TestHistoricalTrends:
         mock_table.query.return_value = {'Items': items}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_historical_trends('farm-001', 365)
+        result = index.get_historical_trends('farm-001', 365, create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -234,7 +247,7 @@ class TestHistoricalTrends:
     
     def test_get_historical_trends_invalid_days(self, mock_dynamodb):
         """Test historical trends with invalid days parameter"""
-        result = index.get_historical_trends('farm-001', 500)
+        result = index.get_historical_trends('farm-001', 500, create_mock_context())
         
         assert result['statusCode'] == 400
         body = json.loads(result['body'])
@@ -246,7 +259,7 @@ class TestHistoricalTrends:
         mock_table.query.return_value = {'Items': []}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_historical_trends('farm-001', 90)
+        result = index.get_historical_trends('farm-001', 90, create_mock_context())
         
         assert result['statusCode'] == 404
         body = json.loads(result['body'])
@@ -272,7 +285,7 @@ class TestCRIWeights:
         mock_table.query.return_value = {'Items': [weights_data]}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_cri_weights()
+        result = index.get_cri_weights(create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -287,7 +300,7 @@ class TestCRIWeights:
         mock_table.query.return_value = {'Items': []}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.get_cri_weights()
+        result = index.get_cri_weights(create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -320,7 +333,7 @@ class TestCRIWeights:
         mock_table.put_item.return_value = {}
         mock_dynamodb.Table.return_value = mock_table
         
-        result = index.update_cri_weights(weights, event)
+        result = index.update_cri_weights(weights, event, create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -347,7 +360,7 @@ class TestCRIWeights:
             'managementPractices': 0.15
         }
         
-        result = index.update_cri_weights(weights, event)
+        result = index.update_cri_weights(weights, event, create_mock_context())
         
         assert result['statusCode'] == 403
         body = json.loads(result['body'])
@@ -372,7 +385,7 @@ class TestCRIWeights:
             'managementPractices': 0.2  # Sum = 1.1, invalid
         }
         
-        result = index.update_cri_weights(weights, event)
+        result = index.update_cri_weights(weights, event, create_mock_context())
         
         assert result['statusCode'] == 400
         body = json.loads(result['body'])
@@ -397,7 +410,7 @@ class TestCRIWeights:
             # Missing managementPractices
         }
         
-        result = index.update_cri_weights(weights, event)
+        result = index.update_cri_weights(weights, event, create_mock_context())
         
         assert result['statusCode'] == 400
         body = json.loads(result['body'])
@@ -409,7 +422,7 @@ class TestErrorHandling:
     
     def test_error_response_format(self):
         """Test error response follows standard format"""
-        result = index.error_response(404, 'TEST_ERROR', 'Test error message')
+        result = index.error_response(404, 'TEST_ERROR', 'Test error message', create_mock_context())
         
         assert result['statusCode'] == 404
         body = json.loads(result['body'])
@@ -421,7 +434,7 @@ class TestErrorHandling:
     def test_success_response_format(self):
         """Test success response follows standard format"""
         data = {'test': 'data', 'value': Decimal('123.45')}
-        result = index.success_response(data)
+        result = index.success_response(data, create_mock_context())
         
         assert result['statusCode'] == 200
         assert 'Access-Control-Allow-Origin' in result['headers']
@@ -445,7 +458,7 @@ class TestLambdaHandler:
             'pathParameters': {'farmId': 'farm-001'}
         }
         
-        result = index.lambda_handler(event, None)
+        result = index.lambda_handler(event, create_mock_context())
         
         assert result['statusCode'] == 200
         body = json.loads(result['body'])
@@ -459,7 +472,7 @@ class TestLambdaHandler:
             'pathParameters': {}
         }
         
-        result = index.lambda_handler(event, None)
+        result = index.lambda_handler(event, create_mock_context())
         
         assert result['statusCode'] == 404
         body = json.loads(result['body'])

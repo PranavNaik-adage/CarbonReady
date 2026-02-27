@@ -24,11 +24,19 @@ The platform follows a three-tier serverless architecture:
 │       ├── compute_stack.py    # Lambda functions
 │       ├── api_stack.py        # API Gateway and Cognito
 │       └── monitoring_stack.py # CloudWatch and SNS
-└── lambda/
-    ├── data_ingestion/         # Sensor data ingestion Lambda
-    ├── ai_processing/          # Carbon calculations Lambda
-    ├── farm_metadata_api/      # Farm metadata API Lambda
-    └── dashboard_api/          # Dashboard API Lambda
+├── lambda/
+│   ├── data_ingestion/         # Sensor data ingestion Lambda
+│   ├── ai_processing/          # Carbon calculations Lambda
+│   ├── farm_metadata_api/      # Farm metadata API Lambda
+│   └── dashboard_api/          # Dashboard API Lambda
+├── firmware/
+│   └── esp32/                  # ESP32 sensor firmware
+└── web-dashboard/              # React web dashboard (see web-dashboard/README.md)
+    ├── src/
+    │   ├── components/         # UI components
+    │   ├── pages/              # Page components
+    │   └── api.ts              # API client
+    └── package.json
 ```
 
 ## Infrastructure Components
@@ -115,25 +123,40 @@ export CDK_DEFAULT_REGION=ap-south-1
 
 ## Development
 
-### Synthesize CloudFormation templates:
+### Backend (CDK/Lambda)
+
+Synthesize CloudFormation templates:
 ```bash
 cdk synth
 ```
 
-### View differences before deployment:
+View differences before deployment:
 ```bash
 cdk diff
 ```
 
-### Deploy specific stack:
+Deploy specific stack:
 ```bash
 cdk deploy CarbonReadyDataStack
 ```
 
-### Destroy infrastructure:
+Destroy infrastructure:
 ```bash
 cdk destroy --all
 ```
+
+### Web Dashboard
+
+See [web-dashboard/README.md](web-dashboard/README.md) for detailed instructions.
+
+Quick start:
+```bash
+cd web-dashboard
+npm install
+npm run dev
+```
+
+The dashboard will be available at `http://localhost:3000`
 
 ## Security
 

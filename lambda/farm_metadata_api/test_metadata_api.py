@@ -17,6 +17,19 @@ from index import (
 )
 
 
+def create_mock_context():
+    """Create a mock Lambda context object"""
+    from unittest.mock import Mock
+    context = Mock()
+    context.request_id = 'test-request-id-12345'
+    context.function_name = 'test-farm-metadata-api'
+    context.function_version = '$LATEST'
+    context.invoked_function_arn = 'arn:aws:lambda:us-east-1:123456789012:function:test'
+    context.memory_limit_in_mb = 512
+    context.aws_request_id = 'test-request-id-12345'
+    return context
+
+
 def test_validate_metadata_valid_cashew():
     """Test validation with valid cashew metadata"""
     metadata = {
@@ -154,7 +167,7 @@ def test_validate_metadata_missing_height_for_coconut():
 
 def test_create_response():
     """Test response creation with CORS headers"""
-    response = create_response(200, {'message': 'success'})
+    response = create_response(200, {'message': 'success'}, create_mock_context())
     
     assert response['statusCode'] == 200
     assert 'Access-Control-Allow-Origin' in response['headers']
@@ -173,7 +186,7 @@ def test_lambda_handler_missing_farm_id(mock_dynamodb):
         'pathParameters': {}
     }
     
-    response = lambda_handler(event, None)
+    response = lambda_handler(event, create_mock_context())
     assert response['statusCode'] == 400
     
     body = json.loads(response['body'])
@@ -188,7 +201,7 @@ def test_lambda_handler_invalid_method(mock_dynamodb):
         'pathParameters': {'farmId': 'farm-001'}
     }
     
-    response = lambda_handler(event, None)
+    response = lambda_handler(event, create_mock_context())
     assert response['statusCode'] == 405
 
 
@@ -201,7 +214,7 @@ def test_lambda_handler_invalid_json(mock_dynamodb):
         'body': 'invalid json'
     }
     
-    response = lambda_handler(event, None)
+    response = lambda_handler(event, create_mock_context())
     assert response['statusCode'] == 400
     
     body = json.loads(response['body'])

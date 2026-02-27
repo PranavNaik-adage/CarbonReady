@@ -368,8 +368,8 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 33: Critical Error Notification**
     - **Validates: Requirements 14.4, 16.6**
 
-- [ ] 20. Implement web dashboard frontend
-  - [ ] 20.1 Create dashboard UI components
+- [x] 20. Implement web dashboard frontend
+  - [x] 20.1 Create dashboard UI components
     - Display net carbon position with classification
     - Display Carbon Readiness Index with score, classification, and component breakdown
     - Display SOC trend with visual indicators
@@ -379,11 +379,11 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - Show staleness indicator for data > 24 hours old
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7_
   
-  - [ ] 20.2 Implement minimal admin panel
+  - [x] 20.2 Implement minimal admin panel
     - Create basic UI for viewing current CRI weights
     - _Requirements: 17.1, 17.2_
 
-- [ ] 21. Final checkpoint - End-to-end system testing
+- [x] 21. Final checkpoint - End-to-end system testing
   - Deploy complete system to dev environment
   - Test sensor → cloud → dashboard flow
   - Verify all property tests pass
