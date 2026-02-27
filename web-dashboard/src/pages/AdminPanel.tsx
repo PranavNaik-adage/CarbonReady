@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api';
 import type { CRIWeights } from '../types';
 
@@ -54,7 +53,6 @@ function AdminPanel() {
     setError(null);
     setSuccessMessage(null);
 
-    // Validate sum
     const sum = calculateSum();
     if (Math.abs(sum - 1.0) > 0.001) {
       setError(`Weights must sum to 1.0 (100%). Current sum: ${sum.toFixed(3)}`);
@@ -66,8 +64,6 @@ function AdminPanel() {
       const result = await api.updateCRIWeights(formValues);
       setWeights(result);
       setSuccessMessage('CRI weights updated successfully!');
-      
-      // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update CRI weights');
@@ -80,23 +76,22 @@ function AdminPanel() {
   const isValidSum = Math.abs(sum - 1.0) <= 0.001;
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="container">
-          <h1>CarbonReady Dashboard</h1>
-          <p>Admin Panel</p>
-          <nav className="nav">
-            <Link to="/dashboard/farm-001">Dashboard</Link>
-            <Link to="/admin" className="active">Admin Panel</Link>
-          </nav>
-        </div>
-      </header>
+    <>
+      <div className="page-header">
+        <h2>⚙️ Admin Panel</h2>
+        <span className="page-header-sub">CRI Weights Configuration</span>
+      </div>
 
       <div className="container">
-        <div className="card" style={{ maxWidth: '800px', margin: '20px auto' }}>
-          <h2>Carbon Readiness Index Weights Configuration</h2>
+        <div className="card" style={{ maxWidth: '860px', margin: '0 auto' }}>
+          <h2>Carbon Readiness Index Weights</h2>
 
-          {loading && <div className="loading">Loading current weights...</div>}
+          {loading && (
+            <div className="loading">
+              <div className="loading-spinner" />
+              <div className="loading-text">Loading current weights...</div>
+            </div>
+          )}
 
           {error && (
             <div className="error">
@@ -112,11 +107,13 @@ function AdminPanel() {
 
           {!loading && weights && (
             <>
-              <div className="breakdown" style={{ marginBottom: '30px' }}>
-                <h3>Current Configuration</h3>
+              <div className="breakdown" style={{ marginBottom: '28px' }}>
+                <h3>📋 Current Configuration</h3>
                 <div className="breakdown-item">
                   <span className="breakdown-label">Config ID</span>
-                  <span className="breakdown-value">{weights.configId}</span>
+                  <span className="breakdown-value" style={{ fontFamily: "'Fira Code', monospace", fontSize: '12px' }}>
+                    {weights.configId}
+                  </span>
                 </div>
                 <div className="breakdown-item">
                   <span className="breakdown-label">Version</span>
@@ -124,20 +121,22 @@ function AdminPanel() {
                 </div>
                 <div className="breakdown-item">
                   <span className="breakdown-label">Last Updated</span>
-                  <span className="breakdown-value">
+                  <span className="breakdown-value" style={{ fontSize: '13px' }}>
                     {weights.updatedAt ? new Date(weights.updatedAt).toLocaleString() : 'Never'}
                   </span>
                 </div>
                 <div className="breakdown-item">
                   <span className="breakdown-label">Updated By</span>
-                  <span className="breakdown-value">{weights.updatedBy}</span>
+                  <span className="breakdown-value" style={{ fontSize: '13px' }}>
+                    {weights.updatedBy}
+                  </span>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit} className="admin-form">
                 <div className="form-group">
                   <label htmlFor="netCarbonPosition">
-                    Net Carbon Position Weight
+                    🌍 Net Carbon Position Weight
                   </label>
                   <input
                     type="number"
@@ -156,7 +155,7 @@ function AdminPanel() {
 
                 <div className="form-group">
                   <label htmlFor="socTrend">
-                    Soil Organic Carbon Trend Weight
+                    🌱 Soil Organic Carbon Trend Weight
                   </label>
                   <input
                     type="number"
@@ -175,7 +174,7 @@ function AdminPanel() {
 
                 <div className="form-group">
                   <label htmlFor="managementPractices">
-                    Management Practices Weight
+                    🚜 Management Practices Weight
                   </label>
                   <input
                     type="number"
@@ -193,41 +192,37 @@ function AdminPanel() {
                 </div>
 
                 <div className="form-group">
-                  <div style={{ 
-                    padding: '10px', 
-                    backgroundColor: isValidSum ? '#d4edda' : '#f8d7da',
-                    borderRadius: '4px',
-                    marginBottom: '10px'
-                  }}>
+                  <div className={`weight-total ${isValidSum ? 'valid' : 'invalid'}`}>
                     <strong>Total:</strong> {(sum * 100).toFixed(1)}%
                     {!isValidSum && (
-                      <span style={{ marginLeft: '10px', color: '#721c24' }}>
-                        ⚠️ Must equal 100%
-                      </span>
+                      <span>⚠️ Must equal 100%</span>
+                    )}
+                    {isValidSum && (
+                      <span>✓ Valid</span>
                     )}
                   </div>
                 </div>
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="button"
                   disabled={submitting || !isValidSum}
                 >
-                  {submitting ? 'Updating...' : 'Update Weights'}
+                  {submitting ? 'Updating...' : '💾 Update Weights'}
                 </button>
               </form>
 
-              <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                <h3 style={{ marginBottom: '10px' }}>About CRI Weights</h3>
-                <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
+              <div className="info-box">
+                <h3>ℹ️ About CRI Weights</h3>
+                <p>
                   The Carbon Readiness Index (CRI) is calculated using a weighted combination of three components:
                 </p>
-                <ul style={{ marginTop: '10px', marginLeft: '20px', fontSize: '14px', color: '#666', lineHeight: '1.8' }}>
+                <ul>
                   <li><strong>Net Carbon Position:</strong> Measures the farm's carbon balance (sequestration vs emissions)</li>
                   <li><strong>Soil Organic Carbon Trend:</strong> Tracks soil health improvement over time</li>
                   <li><strong>Management Practices:</strong> Evaluates sustainable farming practices</li>
                 </ul>
-                <p style={{ marginTop: '10px', fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
+                <p style={{ marginTop: '12px' }}>
                   Weights must sum to 1.0 (100%). Changes will affect all future CRI calculations.
                 </p>
               </div>
@@ -235,7 +230,7 @@ function AdminPanel() {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

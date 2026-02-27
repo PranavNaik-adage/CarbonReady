@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import type {
   CarbonPosition,
@@ -52,58 +52,43 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div className="app">
-        <header className="header">
-          <div className="container">
-            <h1>CarbonReady Dashboard</h1>
-            <p>Carbon Intelligence for Smallholder Farms</p>
-            <nav className="nav">
-              <Link to={`/dashboard/${farmId}`} className="active">Dashboard</Link>
-              <Link to="/admin">Admin Panel</Link>
-            </nav>
-          </div>
-        </header>
-        <div className="container">
-          <div className="loading">Loading dashboard data...</div>
+      <>
+        <div className="page-header">
+          <h2>📊 Dashboard</h2>
+          <span className="page-header-sub">Loading...</span>
         </div>
-      </div>
+        <div className="container">
+          <div className="loading">
+            <div className="loading-spinner" />
+            <div className="loading-text">Loading dashboard data...</div>
+          </div>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="app">
-        <header className="header">
-          <div className="container">
-            <h1>CarbonReady Dashboard</h1>
-            <p>Carbon Intelligence for Smallholder Farms</p>
-            <nav className="nav">
-              <Link to={`/dashboard/${farmId}`} className="active">Dashboard</Link>
-              <Link to="/admin">Admin Panel</Link>
-            </nav>
-          </div>
-        </header>
+      <>
+        <div className="page-header">
+          <h2>📊 Dashboard</h2>
+          <span className="page-header-sub">Farm: {farmId}</span>
+        </div>
         <div className="container">
           <div className="error">
             <strong>Error:</strong> {error}
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="container">
-          <h1>CarbonReady Dashboard</h1>
-          <p>Farm: {farmId}</p>
-          <nav className="nav">
-            <Link to={`/dashboard/${farmId}`} className="active">Dashboard</Link>
-            <Link to="/admin">Admin Panel</Link>
-          </nav>
-        </div>
-      </header>
+    <>
+      <div className="page-header">
+        <h2>📊 Dashboard</h2>
+        <span className="page-header-sub">Farm: {farmId}</span>
+      </div>
 
       <div className="container">
         <div className="dashboard-grid">
@@ -113,12 +98,10 @@ function Dashboard() {
         </div>
 
         {historicalTrends && (
-          <div style={{ marginTop: '20px' }}>
-            <HistoricalTrendsChart data={historicalTrends} />
-          </div>
+          <HistoricalTrendsChart data={historicalTrends} />
         )}
       </div>
-    </div>
+    </>
   );
 }
 

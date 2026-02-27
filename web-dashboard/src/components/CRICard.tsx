@@ -27,17 +27,20 @@ function CRICard({ data }: Props) {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 70) return '#28a745';
-    if (score >= 40) return '#ffc107';
-    return '#dc3545';
+    if (score >= 70) return 'var(--green-400)';
+    if (score >= 40) return 'var(--amber-400)';
+    return 'var(--red-400)';
   };
+
+  const circumference = 2 * Math.PI * 75;
+  const strokeDashoffset = circumference - (carbonReadinessIndex.score / 100) * circumference;
 
   return (
     <div className="card">
       <h2>⭐ Carbon Readiness Index</h2>
 
       {/* Circular Progress Indicator */}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0' }}>
         <div style={{ position: 'relative', width: '180px', height: '180px' }}>
           <svg width="180" height="180" style={{ transform: 'rotate(-90deg)' }}>
             {/* Background circle */}
@@ -46,8 +49,8 @@ function CRICard({ data }: Props) {
               cy="90"
               r="75"
               fill="none"
-              stroke="var(--neutral-200)"
-              strokeWidth="15"
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth="12"
             />
             {/* Progress circle */}
             <circle
@@ -56,10 +59,14 @@ function CRICard({ data }: Props) {
               r="75"
               fill="none"
               stroke={getScoreColor(carbonReadinessIndex.score)}
-              strokeWidth="15"
-              strokeDasharray={`${(carbonReadinessIndex.score / 100) * 471} 471`}
+              strokeWidth="12"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
-              style={{ transition: 'stroke-dasharray 1s ease' }}
+              style={{
+                transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                filter: `drop-shadow(0 0 8px ${getScoreColor(carbonReadinessIndex.score)})`
+              }}
             />
           </svg>
           <div style={{
@@ -69,15 +76,16 @@ function CRICard({ data }: Props) {
             transform: 'translate(-50%, -50%)',
             textAlign: 'center'
           }}>
-            <div style={{ 
-              fontSize: '42px', 
-              fontWeight: 700, 
+            <div style={{
+              fontSize: '42px',
+              fontWeight: 800,
               color: getScoreColor(carbonReadinessIndex.score),
-              lineHeight: 1
+              lineHeight: 1,
+              letterSpacing: '-2px'
             }}>
               {carbonReadinessIndex.score.toFixed(1)}
             </div>
-            <div style={{ fontSize: '14px', color: 'var(--neutral-600)', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--neutral-400)', marginTop: '4px', fontWeight: 500 }}>
               out of 100
             </div>
           </div>
@@ -92,7 +100,7 @@ function CRICard({ data }: Props) {
 
       <div className="component-breakdown">
         <h3>📈 Component Breakdown</h3>
-        
+
         {/* Net Carbon Position Component */}
         <div className="component-item">
           <div className="component-header">
@@ -101,24 +109,15 @@ function CRICard({ data }: Props) {
               {carbonReadinessIndex.components.netCarbonPosition.score.toFixed(1)}
             </span>
           </div>
-          <div style={{ marginTop: '8px' }}>
-            <div style={{ 
-              height: '8px', 
-              background: 'var(--neutral-200)', 
-              borderRadius: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${carbonReadinessIndex.components.netCarbonPosition.score}%`,
-                background: 'linear-gradient(90deg, var(--primary-green), var(--accent-green))',
-                transition: 'width 1s ease'
-              }} />
-            </div>
+          <div className="progress-bar-track">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${carbonReadinessIndex.components.netCarbonPosition.score}%` }}
+            />
           </div>
           <div className="component-details" style={{ marginTop: '8px' }}>
-            Weight: {(carbonReadinessIndex.components.netCarbonPosition.weight * 100).toFixed(0)}% • 
-            Contribution: {carbonReadinessIndex.components.netCarbonPosition.contribution.toFixed(1)} points
+            Weight: {(carbonReadinessIndex.components.netCarbonPosition.weight * 100).toFixed(0)}% •
+            Contribution: {carbonReadinessIndex.components.netCarbonPosition.contribution.toFixed(1)} pts
           </div>
         </div>
 
@@ -130,24 +129,15 @@ function CRICard({ data }: Props) {
               {carbonReadinessIndex.components.socTrend.score.toFixed(1)}
             </span>
           </div>
-          <div style={{ marginTop: '8px' }}>
-            <div style={{ 
-              height: '8px', 
-              background: 'var(--neutral-200)', 
-              borderRadius: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${carbonReadinessIndex.components.socTrend.score}%`,
-                background: 'linear-gradient(90deg, var(--primary-green), var(--accent-green))',
-                transition: 'width 1s ease'
-              }} />
-            </div>
+          <div className="progress-bar-track">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${carbonReadinessIndex.components.socTrend.score}%` }}
+            />
           </div>
           <div className="component-details" style={{ marginTop: '8px' }}>
-            Weight: {(carbonReadinessIndex.components.socTrend.weight * 100).toFixed(0)}% • 
-            Contribution: {carbonReadinessIndex.components.socTrend.contribution.toFixed(1)} points
+            Weight: {(carbonReadinessIndex.components.socTrend.weight * 100).toFixed(0)}% •
+            Contribution: {carbonReadinessIndex.components.socTrend.contribution.toFixed(1)} pts
           </div>
         </div>
 
@@ -159,24 +149,15 @@ function CRICard({ data }: Props) {
               {carbonReadinessIndex.components.managementPractices.score.toFixed(1)}
             </span>
           </div>
-          <div style={{ marginTop: '8px' }}>
-            <div style={{ 
-              height: '8px', 
-              background: 'var(--neutral-200)', 
-              borderRadius: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${carbonReadinessIndex.components.managementPractices.score}%`,
-                background: 'linear-gradient(90deg, var(--primary-green), var(--accent-green))',
-                transition: 'width 1s ease'
-              }} />
-            </div>
+          <div className="progress-bar-track">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${carbonReadinessIndex.components.managementPractices.score}%` }}
+            />
           </div>
           <div className="component-details" style={{ marginTop: '8px' }}>
-            Weight: {(carbonReadinessIndex.components.managementPractices.weight * 100).toFixed(0)}% • 
-            Contribution: {carbonReadinessIndex.components.managementPractices.contribution.toFixed(1)} points
+            Weight: {(carbonReadinessIndex.components.managementPractices.weight * 100).toFixed(0)}% •
+            Contribution: {carbonReadinessIndex.components.managementPractices.contribution.toFixed(1)} pts
           </div>
         </div>
       </div>
@@ -207,20 +188,10 @@ function CRICard({ data }: Props) {
         )}
       </div>
 
-      <div style={{ 
-        marginTop: '20px', 
-        padding: '12px', 
-        background: 'var(--neutral-50)', 
-        borderRadius: '8px',
-        fontSize: '12px', 
-        color: 'var(--neutral-600)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
+      <div className="info-footer">
         <span>ℹ️</span>
         <span>
-          Scoring Logic: {carbonReadinessIndex.scoringLogicVersion} • 
+          Scoring Logic: {carbonReadinessIndex.scoringLogicVersion} •
           Calculated: {new Date(carbonReadinessIndex.calculatedAt).toLocaleString()}
         </span>
       </div>
