@@ -74,7 +74,7 @@ class ComputeStack(Stack):
             "SensorDataRule",
             rule_name="CarbonReadySensorDataRule",
             topic_rule_payload=iot.CfnTopicRule.TopicRulePayloadProperty(
-                sql="SELECT * FROM 'carbonready/farm/+/sensor/data' WHERE hash IS NOT NULL",
+                sql="SELECT * FROM 'carbonready/farm/+/sensor/data' WHERE EXISTS(hash)",
                 actions=[
                     iot.CfnTopicRule.ActionProperty(
                         lambda_=iot.CfnTopicRule.LambdaActionProperty(

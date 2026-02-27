@@ -6,7 +6,8 @@ import json
 import os
 import hashlib
 import gzip
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import boto3
 
 dynamodb = boto3.resource('dynamodb')
@@ -133,7 +134,13 @@ def check_calibration_status(device_id):
         
         latest_calibration = response['Items'][0]
         calibration_date = datetime.fromisoformat(latest_calibration['calibrationDate'])
-        days_since_calibration = (datetime.utcnow() - calibration_date).days
+        
+        # Ensure both datetimes are timezone-aware for comparison
+        now = datetime.now(timezone.utc)
+        if calibration_date.tzinfo is None:
+            calibration_date = calibration_date.replace(tzinfo=timezone.utc)
+        
+        days_since_calibration = (now - calibration_date).days
         
         if days_since_calibration > 365:
             return {"status": "expired", "action": "flag_data"}
@@ -153,16 +160,17 @@ def store_in_dynamodb(payload):
     timestamp_unix = int(timestamp.timestamp())
     
     # Calculate TTL (90 days from now)
-    ttl = int((datetime.utcnow() + timedelta(days=90)).timestamp())
+    ttl = int((datetime.now(timezone.utc) + timedelta(days=90)).timestamp())
     
+    # Convert float values to Decimal for DynamoDB
     item = {
         'farmId': payload['farmId'],
         'timestamp': timestamp_unix,
         'deviceId': payload['deviceId'],
-        'soilMoisture': payload['readings']['soilMoisture'],
-        'soilTemperature': payload['readings']['soilTemperature'],
-        'airTemperature': payload['readings']['airTemperature'],
-        'humidity': payload['readings']['humidity'],
+        'soilMoisture': Decimal(str(payload['readings']['soilMoisture'])),
+        'soilTemperature': Decimal(str(payload['readings']['soilTemperature'])),
+        'airTemperature': Decimal(str(payload['readings']['airTemperature'])),
+        'humidity': Decimal(str(payload['readings']['humidity'])),
         'hash': payload['hash'],
         'validationStatus': 'valid',
         'ttl': ttl

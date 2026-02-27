@@ -4,13 +4,16 @@ Initialize CRI Weights in DynamoDB
 Sets default weights for Carbon Readiness Index calculation
 """
 import boto3
-from datetime import datetime
+import sys
+from datetime import datetime, timezone
+from decimal import Decimal
 
 # Initialize DynamoDB client
 dynamodb = boto3.resource('dynamodb')
 
-# Table name (update if different)
-TABLE_NAME = 'CarbonReadyCRIWeightsTable'
+# Table name - can be passed as command line argument
+# Usage: python init_cri_weights.py [table-name]
+TABLE_NAME = sys.argv[1] if len(sys.argv) > 1 else 'carbonready-cri-weights'
 
 
 def init_cri_weights():
@@ -18,13 +21,14 @@ def init_cri_weights():
     table = dynamodb.Table(TABLE_NAME)
     
     # Default weights as per design document
+    # Note: DynamoDB requires Decimal type for numbers
     default_weights = {
         'configId': 'default',
         'version': 1,
-        'netCarbonPosition': 0.5,  # 50%
-        'socTrend': 0.3,            # 30%
-        'managementPractices': 0.2, # 20%
-        'updatedAt': datetime.utcnow().isoformat(),
+        'netCarbonPosition': Decimal('0.5'),  # 50%
+        'socTrend': Decimal('0.3'),            # 30%
+        'managementPractices': Decimal('0.2'), # 20%
+        'updatedAt': datetime.now(timezone.utc).isoformat(),
         'updatedBy': 'system-init'
     }
     
@@ -43,4 +47,15 @@ def init_cri_weights():
 
 if __name__ == '__main__':
     print("Initializing CRI weights...")
+    print(f"Table name: {TABLE_NAME}")
+    
+    # List available tables to help with debugging
+    try:
+        tables = dynamodb.meta.client.list_tables()['TableNames']
+        cri_tables = [t for t in tables if 'cri' in t.lower() or 'weight' in t.lower()]
+        if cri_tables:
+            print(f"Found CRI-related tables: {', '.join(cri_tables)}")
+    except Exception as e:
+        print(f"Could not list tables: {e}")
+    
     init_cri_weights()
