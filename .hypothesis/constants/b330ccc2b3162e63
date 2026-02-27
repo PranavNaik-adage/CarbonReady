@@ -1,0 +1,4 @@
+# file: E:\New Drive D\CarbonReady\lambda\data_ingestion\index.py
+# hypothesis_version: 6.151.9
+
+[100, 365, '+00:00', ':device_id', 'Items', 'SENSOR_DATA_BUCKET', 'SENSOR_DATA_TABLE', 'WARNINGS_TOPIC', 'Z', 'accept_data', 'action', 'airTemperature', 'application/json', 'calibrationDate', 'calibration_invalid', 'deviceId', 'dynamodb', 'error', 'errors', 'expired', 'farmId', 'flag_data', 'gzip', 'hash', 'hash_mismatch', 'humidity', 'readings', 'reason', 'reject_data', 'rejected', 's3', 'sns', 'soilMoisture', 'soilTemperature', 'status', 'success', 'timestamp', 'ttl', 'uncalibrated', 'valid', 'validationStatus', 'validation_failed']

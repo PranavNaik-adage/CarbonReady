@@ -98,8 +98,8 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
 - [x] 6. Checkpoint - Verify data ingestion and metadata APIs work end-to-end
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement biomass calculation module
-  - [ ] 7.1 Create allometric equation functions
+- [-] 7. Implement biomass calculation module
+  - [x] 7.1 Create allometric equation functions
     - Implement calculate_cashew_biomass(dbh, age) using DBH and age
     - Implement calculate_coconut_biomass(height, age) using height and age
     - Implement calculate_farm_biomass(metadata) that multiplies per-tree biomass by density and farm size
@@ -113,7 +113,7 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 11: Farm Biomass Scaling**
     - **Validates: Requirements 4.3**
   
-  - [ ] 7.4 Implement carbon stock and CO₂ equivalent conversion
+  - [x] 7.4 Implement carbon stock and CO₂ equivalent conversion
     - Create convert_biomass_to_co2e(biomass_kg) function (biomass × 0.5 × 3.667)
     - This is the central conversion function used throughout the system
     - Store results with 2 decimal precision
@@ -131,14 +131,14 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 12: Numeric Precision Consistency**
     - **Validates: Requirements 4.4, 5.3, 7.4**
 
-- [ ] 8. Implement annual sequestration module
-  - [ ] 8.1 Create growth curve estimation function
+- [x] 8. Implement annual sequestration module
+  - [x] 8.1 Create growth curve estimation function
     - Implement estimate_sequestration_from_growth_curves(tree_age, crop_type, region)
     - Load regional growth curve parameters from DynamoDB
     - Return biomass increment in kg (NOT CO₂e)
     - _Requirements: 8.1, 8.2_
   
-  - [ ] 8.2 Implement sequestration calculation logic
+  - [x] 8.2 Implement sequestration calculation logic
     - Calculate biomass increment from historical data when available
     - Use growth curves as fallback when historical data unavailable
     - Convert to CO₂e using central convert_biomass_to_co2e() function
@@ -152,15 +152,15 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 21: Sequestration Unit Consistency**
     - **Validates: Requirements 8.3**
 
-- [ ] 9. Implement emissions calculation module
-  - [ ] 9.1 Create emissions calculation function
+- [x] 9. Implement emissions calculation module
+  - [x] 9.1 Create emissions calculation function
     - Implement calculate_emissions(metadata) using IPCC Tier 1 factors
     - Calculate fertilizer emissions: total_fertilizer = fertilizerUsage × farmSizeHectares, then apply 0.01 factor
     - Calculate irrigation emissions: total_irrigation = irrigationActivity × farmSizeHectares, then apply energy factor
     - Return emissions in CO₂e kg/year with 2 decimal precision
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
   
-  - [ ] 9.2 Write property test for IPCC emission factor usage
+  - [x] 9.2 Write property test for IPCC emission factor usage
     - **Property 18: IPCC Emission Factor Usage**
     - **Validates: Requirements 7.1, 7.2**
   
@@ -195,7 +195,7 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 15: SOC Model Input Completeness**
     - **Validates: Requirements 6.1**
 
-- [ ] 11. Checkpoint - Verify all calculation modules produce correct outputs
+- [x] 11. Checkpoint - Verify all calculation modules produce correct outputs
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Implement net carbon position calculation

@@ -37,6 +37,7 @@ compute_stack = ComputeStack(
     ai_model_registry_table=data_stack.ai_model_registry_table,
     sensor_calibration_table=data_stack.sensor_calibration_table,
     cri_weights_table=data_stack.cri_weights_table,
+    growth_curves_table=data_stack.growth_curves_table,
     sensor_data_bucket=data_stack.sensor_data_bucket,
     critical_alerts_topic=monitoring_stack.critical_alerts_topic,
     warnings_topic=monitoring_stack.warnings_topic,

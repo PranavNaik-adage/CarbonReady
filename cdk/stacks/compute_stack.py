@@ -26,6 +26,7 @@ class ComputeStack(Stack):
         ai_model_registry_table,
         sensor_calibration_table,
         cri_weights_table,
+        growth_curves_table,
         sensor_data_bucket,
         critical_alerts_topic,
         warnings_topic,
@@ -104,6 +105,7 @@ class ComputeStack(Stack):
                 "AI_MODEL_REGISTRY_TABLE": ai_model_registry_table.table_name,
                 "CRI_WEIGHTS_TABLE": cri_weights_table.table_name,
                 "SENSOR_DATA_TABLE": sensor_data_table.table_name,
+                "GROWTH_CURVES_TABLE": growth_curves_table.table_name,
             },
         )
 
@@ -113,6 +115,7 @@ class ComputeStack(Stack):
         ai_model_registry_table.grant_read_data(self.ai_processing_lambda)
         cri_weights_table.grant_read_data(self.ai_processing_lambda)
         sensor_data_table.grant_read_data(self.ai_processing_lambda)
+        growth_curves_table.grant_read_data(self.ai_processing_lambda)
 
         # EventBridge rule to trigger AI Processing Lambda daily at 02:00 UTC
         ai_processing_rule = events.Rule(
