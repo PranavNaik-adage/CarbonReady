@@ -6,6 +6,7 @@ import json
 import os
 import hashlib
 import gzip
+import traceback
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import boto3
@@ -30,26 +31,36 @@ def lambda_handler(event, context):
         # Parse incoming message
         payload = event
         
+        # Log incoming request
+        print(json.dumps({
+            "level": "INFO",
+            "message": "Processing sensor data",
+            "farmId": payload.get('farmId'),
+            "deviceId": payload.get('deviceId'),
+            "timestamp": payload.get('timestamp'),
+            "requestId": context.request_id
+        }))
+        
         # Verify cryptographic hash
         if not verify_hash(payload):
-            log_tampering_alert(payload)
+            log_tampering_alert(payload, context)
             send_sns_notification(
                 CRITICAL_ALERTS_TOPIC,
                 "Data tampering detected",
-                f"Hash mismatch for farmId: {payload.get('farmId')}"
+                f"Hash mismatch for farmId: {payload.get('farmId')}, deviceId: {payload.get('deviceId')}"
             )
             return {"status": "rejected", "reason": "hash_mismatch"}
         
         # Validate data ranges
         validation_result = validate_sensor_data(payload)
         if not validation_result['valid']:
-            print(f"Validation failed: {validation_result['errors']}")
+            log_validation_error(payload, validation_result['errors'], context)
             return {"status": "rejected", "reason": "validation_failed", "errors": validation_result['errors']}
         
         # Check calibration status
         calibration_status = check_calibration_status(payload.get('deviceId'))
         if calibration_status['status'] != 'valid':
-            print(f"Calibration check failed: {calibration_status}")
+            log_calibration_error(payload, calibration_status, context)
             return {"status": "rejected", "reason": "calibration_invalid"}
         
         # Store in DynamoDB (hot storage)
@@ -58,14 +69,38 @@ def lambda_handler(event, context):
         # Archive to S3 (cold storage)
         archive_to_s3(payload)
         
+        # Log success
+        print(json.dumps({
+            "level": "INFO",
+            "message": "Successfully processed sensor data",
+            "farmId": payload.get('farmId'),
+            "deviceId": payload.get('deviceId'),
+            "requestId": context.request_id
+        }))
+        
         return {"status": "success"}
         
     except Exception as e:
-        print(f"Error processing sensor data: {str(e)}")
+        # Log error with full context
+        error_details = {
+            "level": "ERROR",
+            "message": "Error processing sensor data",
+            "error": str(e),
+            "errorType": type(e).__name__,
+            "stackTrace": traceback.format_exc(),
+            "farmId": event.get('farmId'),
+            "deviceId": event.get('deviceId'),
+            "functionName": context.function_name,
+            "requestId": context.request_id,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        print(json.dumps(error_details))
+        
+        # Send SNS notification for critical errors
         send_sns_notification(
             CRITICAL_ALERTS_TOPIC,
             "Data Ingestion Lambda Error",
-            f"Error: {str(e)}"
+            f"Function: {context.function_name}\nError: {str(e)}\nFarmId: {event.get('farmId')}\nRequestId: {context.request_id}"
         )
         raise
 
@@ -143,12 +178,24 @@ def check_calibration_status(device_id):
         days_since_calibration = (now - calibration_date).days
         
         if days_since_calibration > 365:
+            # Send notification for calibration expiry
+            send_sns_notification(
+                WARNINGS_TOPIC,
+                "Sensor Calibration Expired",
+                f"Device {device_id} requires recalibration. Last calibrated {days_since_calibration} days ago."
+            )
             return {"status": "expired", "action": "flag_data"}
         
         return {"status": "valid", "action": "accept_data"}
         
     except Exception as e:
-        print(f"Error checking calibration: {str(e)}")
+        print(json.dumps({
+            "level": "ERROR",
+            "message": "Error checking calibration",
+            "error": str(e),
+            "errorType": type(e).__name__,
+            "deviceId": device_id
+        }))
         return {"status": "error", "action": "reject_data"}
 
 
@@ -202,9 +249,52 @@ def archive_to_s3(payload):
     )
 
 
-def log_tampering_alert(payload):
-    """Log data tampering alert"""
-    print(f"TAMPERING ALERT: Hash mismatch for farmId: {payload.get('farmId')}, deviceId: {payload.get('deviceId')}")
+def log_tampering_alert(payload, context):
+    """Log data tampering alert with full context"""
+    alert_details = {
+        "level": "CRITICAL",
+        "message": "Data tampering detected - hash mismatch",
+        "farmId": payload.get('farmId'),
+        "deviceId": payload.get('deviceId'),
+        "timestamp": payload.get('timestamp'),
+        "receivedHash": payload.get('hash'),
+        "functionName": context.function_name,
+        "requestId": context.request_id,
+        "alertTimestamp": datetime.utcnow().isoformat()
+    }
+    print(json.dumps(alert_details))
+
+
+def log_validation_error(payload, errors, context):
+    """Log data validation errors with full context"""
+    error_details = {
+        "level": "WARNING",
+        "message": "Data validation failed",
+        "farmId": payload.get('farmId'),
+        "deviceId": payload.get('deviceId'),
+        "timestamp": payload.get('timestamp'),
+        "validationErrors": errors,
+        "readings": payload.get('readings'),
+        "functionName": context.function_name,
+        "requestId": context.request_id,
+        "alertTimestamp": datetime.utcnow().isoformat()
+    }
+    print(json.dumps(error_details))
+
+
+def log_calibration_error(payload, calibration_status, context):
+    """Log calibration errors with full context"""
+    error_details = {
+        "level": "WARNING",
+        "message": "Calibration check failed",
+        "farmId": payload.get('farmId'),
+        "deviceId": payload.get('deviceId'),
+        "calibrationStatus": calibration_status,
+        "functionName": context.function_name,
+        "requestId": context.request_id,
+        "alertTimestamp": datetime.utcnow().isoformat()
+    }
+    print(json.dumps(error_details))
 
 
 def send_sns_notification(topic_arn, subject, message):
@@ -216,4 +306,11 @@ def send_sns_notification(topic_arn, subject, message):
             Message=message
         )
     except Exception as e:
-        print(f"Error sending SNS notification: {str(e)}")
+        print(json.dumps({
+            "level": "ERROR",
+            "message": "Failed to send SNS notification",
+            "error": str(e),
+            "errorType": type(e).__name__,
+            "topicArn": topic_arn,
+            "subject": subject
+        }))

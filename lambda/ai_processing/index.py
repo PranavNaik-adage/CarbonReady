@@ -4,6 +4,7 @@ Performs carbon calculations on a scheduled basis
 """
 import json
 import os
+import traceback
 from datetime import datetime, timedelta
 from decimal import Decimal
 import boto3
@@ -20,6 +21,7 @@ from biomass_calculator import (
 )
 
 dynamodb = boto3.resource('dynamodb')
+sns = boto3.client('sns')
 
 FARM_METADATA_TABLE = os.environ['FARM_METADATA_TABLE']
 CARBON_CALCULATIONS_TABLE = os.environ['CARBON_CALCULATIONS_TABLE']
@@ -27,6 +29,8 @@ AI_MODEL_REGISTRY_TABLE = os.environ['AI_MODEL_REGISTRY_TABLE']
 CRI_WEIGHTS_TABLE = os.environ['CRI_WEIGHTS_TABLE']
 SENSOR_DATA_TABLE = os.environ['SENSOR_DATA_TABLE']
 GROWTH_CURVES_TABLE = os.environ.get('GROWTH_CURVES_TABLE', 'CarbonReady-GrowthCurvesTable')
+CRITICAL_ALERTS_TOPIC = os.environ.get('CRITICAL_ALERTS_TOPIC', '')
+WARNINGS_TOPIC = os.environ.get('WARNINGS_TOPIC', '')
 
 # Model versions for tracking
 MODEL_VERSIONS = {
@@ -44,28 +48,106 @@ def lambda_handler(event, context):
     Processes carbon calculations for all farms
     """
     try:
+        # Log start of processing
+        print(json.dumps({
+            "level": "INFO",
+            "message": "Starting AI processing batch",
+            "functionName": context.function_name,
+            "requestId": context.request_id,
+            "timestamp": datetime.utcnow().isoformat()
+        }))
+        
         # Get list of all farms
         farms = get_all_farms()
         
-        print(f"Processing carbon calculations for {len(farms)} farms")
+        print(json.dumps({
+            "level": "INFO",
+            "message": f"Processing carbon calculations for {len(farms)} farms",
+            "farmCount": len(farms),
+            "requestId": context.request_id
+        }))
         
         results = []
+        errors = []
+        
         for farm_id in farms:
             try:
-                result = process_farm_carbon(farm_id)
+                result = process_farm_carbon(farm_id, context)
                 results.append(result)
             except Exception as e:
-                print(f"Error processing farm {farm_id}: {str(e)}")
-                results.append({"farmId": farm_id, "status": "error", "error": str(e)})
+                error_details = {
+                    "farmId": farm_id,
+                    "status": "error",
+                    "error": str(e),
+                    "errorType": type(e).__name__,
+                    "stackTrace": traceback.format_exc()
+                }
+                
+                # Log error with full context
+                print(json.dumps({
+                    "level": "ERROR",
+                    "message": f"Error processing farm {farm_id}",
+                    "error": str(e),
+                    "errorType": type(e).__name__,
+                    "stackTrace": traceback.format_exc(),
+                    "farmId": farm_id,
+                    "functionName": context.function_name,
+                    "requestId": context.request_id,
+                    "timestamp": datetime.utcnow().isoformat()
+                }))
+                
+                results.append(error_details)
+                errors.append(error_details)
+        
+        # Log completion summary
+        print(json.dumps({
+            "level": "INFO",
+            "message": "AI processing batch completed",
+            "totalFarms": len(farms),
+            "successfulFarms": len(results) - len(errors),
+            "failedFarms": len(errors),
+            "requestId": context.request_id,
+            "timestamp": datetime.utcnow().isoformat()
+        }))
+        
+        # Send notification if there were errors
+        if errors and CRITICAL_ALERTS_TOPIC:
+            send_sns_notification(
+                CRITICAL_ALERTS_TOPIC,
+                "AI Processing Errors",
+                f"AI Processing completed with {len(errors)} errors out of {len(farms)} farms.\n\nFailed farms: {', '.join([e['farmId'] for e in errors])}"
+            )
         
         return {
             "status": "success",
             "processed": len(results),
+            "successful": len(results) - len(errors),
+            "failed": len(errors),
             "results": results
         }
         
     except Exception as e:
-        print(f"Error in AI processing: {str(e)}")
+        # Log critical error with full context
+        error_details = {
+            "level": "CRITICAL",
+            "message": "Critical error in AI processing",
+            "error": str(e),
+            "errorType": type(e).__name__,
+            "stackTrace": traceback.format_exc(),
+            "functionName": context.function_name,
+            "requestId": context.request_id,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        print(json.dumps(error_details))
+        
+        # Send SNS notification for critical errors
+        if CRITICAL_ALERTS_TOPIC:
+            send_sns_notification(
+                CRITICAL_ALERTS_TOPIC,
+                "AI Processing Lambda Critical Error",
+                f"Function: {context.function_name}\nError: {str(e)}\nRequestId: {context.request_id}\n\nStack Trace:\n{traceback.format_exc()}"
+            )
+        
         raise
 
 
@@ -199,7 +281,7 @@ def analyze_soc_trend_stub(farm_id, metadata):
     }
 
 
-def process_farm_carbon(farm_id):
+def process_farm_carbon(farm_id, context):
     """
     Process carbon calculations for a single farm.
     
@@ -211,13 +293,19 @@ def process_farm_carbon(farm_id):
     
     Args:
         farm_id (str): Farm identifier
+        context: Lambda context object
         
     Returns:
         dict: Processing result with status and calculated values
         
     Validates: Requirements 4.1, 4.2, 4.3, 5.1, 5.2, 6.1, 7.1, 8.1, 8.4, 9.1, 19.3, 19.4, 19.8
     """
-    print(f"Processing carbon calculations for farm: {farm_id}")
+    print(json.dumps({
+        "level": "INFO",
+        "message": f"Processing carbon calculations for farm: {farm_id}",
+        "farmId": farm_id,
+        "requestId": context.request_id
+    }))
     
     try:
         # 1. Retrieve farm metadata
@@ -299,7 +387,14 @@ def process_farm_carbon(farm_id):
         # 11. Store results in DynamoDB
         store_carbon_calculation(calculation_result)
         
-        print(f"Successfully processed farm {farm_id}: CRI={cri_result['score']}, Net Position={net_position_result['netPosition']} kg CO2e/year")
+        print(json.dumps({
+            "level": "INFO",
+            "message": f"Successfully processed farm {farm_id}",
+            "farmId": farm_id,
+            "carbonReadinessIndex": cri_result['score'],
+            "netCarbonPosition": net_position_result['netPosition'],
+            "requestId": context.request_id
+        }))
         
         return {
             "farmId": farm_id,
@@ -310,14 +405,16 @@ def process_farm_carbon(farm_id):
         }
         
     except Exception as e:
-        print(f"Error processing farm {farm_id}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return {
+        print(json.dumps({
+            "level": "ERROR",
+            "message": f"Error processing farm {farm_id}",
+            "error": str(e),
+            "errorType": type(e).__name__,
+            "stackTrace": traceback.format_exc(),
             "farmId": farm_id,
-            "status": "error",
-            "error": str(e)
-        }
+            "requestId": context.request_id
+        }))
+        raise
 
 
 def store_carbon_calculation(calculation_result):
@@ -365,3 +462,22 @@ def convert_floats_to_decimal(obj):
         return Decimal(str(obj))
     else:
         return obj
+
+
+def send_sns_notification(topic_arn, subject, message):
+    """Send SNS notification"""
+    try:
+        sns.publish(
+            TopicArn=topic_arn,
+            Subject=subject,
+            Message=message
+        )
+    except Exception as e:
+        print(json.dumps({
+            "level": "ERROR",
+            "message": "Failed to send SNS notification",
+            "error": str(e),
+            "errorType": type(e).__name__,
+            "topicArn": topic_arn,
+            "subject": subject
+        }))

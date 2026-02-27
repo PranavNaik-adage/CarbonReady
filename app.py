@@ -52,6 +52,8 @@ api_stack = ApiStack(
     carbon_calculations_table=data_stack.carbon_calculations_table,
     sensor_data_table=data_stack.sensor_data_table,
     cri_weights_table=data_stack.cri_weights_table,
+    critical_alerts_topic=monitoring_stack.critical_alerts_topic,
+    warnings_topic=monitoring_stack.warnings_topic,
     env=env
 )
 
@@ -59,5 +61,6 @@ api_stack = ApiStack(
 compute_stack.add_dependency(data_stack)
 compute_stack.add_dependency(monitoring_stack)
 api_stack.add_dependency(data_stack)
+api_stack.add_dependency(monitoring_stack)
 
 app.synth()
