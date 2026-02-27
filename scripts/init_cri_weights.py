@@ -13,7 +13,23 @@ dynamodb = boto3.resource('dynamodb')
 
 # Table name - can be passed as command line argument
 # Usage: python init_cri_weights.py [table-name]
-TABLE_NAME = sys.argv[1] if len(sys.argv) > 1 else 'carbonready-cri-weights'
+def get_cri_weights_table():
+    """Find the CRI weights table name"""
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    
+    # Try to find the table automatically
+    try:
+        tables = dynamodb.meta.client.list_tables()['TableNames']
+        cri_tables = [t for t in tables if 'CRIWeights' in t or 'CRIWeightsTable' in t]
+        if cri_tables:
+            return cri_tables[0]
+    except Exception:
+        pass
+    
+    return 'carbonready-cri-weights'
+
+TABLE_NAME = get_cri_weights_table()
 
 
 def init_cri_weights():

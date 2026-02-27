@@ -86,6 +86,47 @@ carbonready-sensor-data/
 - AWS CDK CLI (`npm install -g aws-cdk`)
 - Node.js 18+ (for CDK)
 
+## Quick Start
+
+### 1. Deploy Infrastructure
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Bootstrap CDK (first time only)
+cdk bootstrap aws://ACCOUNT-ID/REGION
+
+# Deploy all stacks
+cdk deploy --all
+```
+
+### 2. Onboard a Farm
+
+See [FARM_ONBOARDING.md](FARM_ONBOARDING.md) for complete onboarding guide.
+
+```bash
+# Automated onboarding (recommended)
+python scripts/onboard_farm.py farm-001 esp32-001 \
+  --crop-type coconut \
+  --tree-age 15 \
+  --tree-height 12.5
+
+# Or follow manual steps in FARM_ONBOARDING.md
+```
+
+### 3. Access Dashboard
+
+See [web-dashboard/README.md](web-dashboard/README.md) for dashboard setup.
+
+```bash
+cd web-dashboard
+npm install
+npm run dev
+```
+
 ## Installation
 
 1. Install Python dependencies:
@@ -187,6 +228,32 @@ Current capacity (pilot: 1-100 farms):
 - Lambda: 100 concurrent executions
 - DynamoDB: On-demand capacity (auto-scaling)
 - S3: Unlimited storage
+
+## Documentation
+
+### Deployment & Operations
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Infrastructure deployment guide
+- **[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)** - Production deployment checklist
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture details
+
+### Farm Onboarding
+- **[FARM_ONBOARDING.md](FARM_ONBOARDING.md)** - Complete farm onboarding guide
+- **[ONBOARDING_CHECKLIST.md](ONBOARDING_CHECKLIST.md)** - Quick reference checklist
+- **[DEVICE_PROVISIONING.md](DEVICE_PROVISIONING.md)** - ESP32 device provisioning
+
+### Testing & Verification
+- **[SETUP_AND_TEST_GUIDE.md](SETUP_AND_TEST_GUIDE.md)** - Setup and testing guide
+- **[TEST_RESULTS_SUMMARY.md](TEST_RESULTS_SUMMARY.md)** - Test results summary
+- **[TESTING_COMMANDS.md](TESTING_COMMANDS.md)** - Common testing commands
+
+### Security & Compliance
+- **[SECURITY.md](SECURITY.md)** - Security best practices
+- **[PRE_COMMIT_CHECKLIST.md](PRE_COMMIT_CHECKLIST.md)** - Pre-commit checklist
+
+### Component-Specific
+- **[web-dashboard/README.md](web-dashboard/README.md)** - Web dashboard setup
+- **[firmware/esp32/README.md](firmware/esp32/README.md)** - ESP32 firmware guide
+- **[lambda/*/README.md](lambda/)** - Lambda function documentation
 
 ## License
 

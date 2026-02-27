@@ -391,21 +391,21 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
   - Run integration tests
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 22. Deploy to production
-  - [ ] 22.1 Deploy infrastructure using AWS CDK
+- [x] 22. Deploy to production
+  - [x] 22.1 Deploy infrastructure using AWS CDK
     - Deploy to production AWS account
     - Configure production CloudWatch alarms
     - Set up production SNS notifications
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6_
   
-  - [ ] 22.2 Provision ESP32 devices with certificates
+  - [x] 22.2 Provision ESP32 devices with certificates
     - Generate unique X.509 certificates for each device
     - Flash firmware to ESP32 devices
     - Store certificates in SPIFFS partition
     - Perform initial sensor calibration
     - _Requirements: 11.1, 11.3, 18.1_
   
-  - [ ] 22.3 Onboard pilot farm
+  - [x] 22.3 Onboard pilot farm
     - Create farm metadata entry
     - Deploy ESP32 sensor on farm
     - Verify data ingestion

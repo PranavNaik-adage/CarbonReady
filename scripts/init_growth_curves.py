@@ -17,8 +17,24 @@ def init_growth_curves():
     
     dynamodb = boto3.resource('dynamodb')
     
-    # Get table name from environment or use default
-    table_name = 'CarbonReady-GrowthCurvesTable'
+    # Try to find the GrowthCurves table
+    try:
+        tables = dynamodb.meta.client.list_tables()['TableNames']
+        growth_tables = [t for t in tables if 'GrowthCurve' in t or 'growthcurve' in t.lower()]
+        
+        if not growth_tables:
+            print("⚠ GrowthCurves table not found in deployment")
+            print("  This table is optional - growth curves are used as fallback when historical data is unavailable")
+            print("  The system will work without it, using historical biomass data instead")
+            return True
+        
+        table_name = growth_tables[0]
+        print(f"Found table: {table_name}")
+        
+    except Exception as e:
+        print(f"⚠ Could not list tables: {e}")
+        print("  Skipping growth curves initialization")
+        return True
     
     try:
         table = dynamodb.Table(table_name)
