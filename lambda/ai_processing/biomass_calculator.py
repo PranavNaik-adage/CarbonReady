@@ -676,3 +676,373 @@ def calculate_emissions(metadata):
         "totalEmissions": round(total_emissions, 2),
         "unit": "kg CO2e/year"
     }
+
+
+def calculate_net_carbon_position(annual_sequestration_co2e, annual_emissions_co2e):
+    """
+    Calculate net carbon position as the difference between annual sequestration and emissions.
+    
+    Net carbon position = annual_sequestration_co2e - annual_emissions_co2e
+    
+    Classification:
+    - Positive value: "Net Carbon Sink" (farm sequesters more than it emits)
+    - Negative value: "Net Carbon Source" (farm emits more than it sequesters)
+    
+    Args:
+        annual_sequestration_co2e (float): Annual carbon sequestration in kg CO₂e/year
+        annual_emissions_co2e (float): Annual emissions in kg CO₂e/year
+    
+    Returns:
+        dict: Net carbon position data containing:
+            - netPosition (float): Net carbon position in kg CO₂e/year (2 decimal precision)
+            - classification (str): "Net Carbon Sink" or "Net Carbon Source"
+            - unit (str): "kg CO2e/year"
+    
+    Validates: Requirements 8.4, 8.5, 8.6, 8.7
+    """
+    # Calculate net position
+    net_position = annual_sequestration_co2e - annual_emissions_co2e
+    
+    # Round to 2 decimal places for storage
+    net_position_rounded = round(net_position, 2)
+    
+    # Classify based on sign of rounded value
+    # This ensures classification is consistent with the stored value
+    if net_position_rounded > 0:
+        classification = "Net Carbon Sink"
+    elif net_position_rounded < 0:
+        classification = "Net Carbon Source"
+    else:
+        # Exactly zero - technically neither, but classify as neutral sink
+        classification = "Net Carbon Sink"
+    
+    return {
+        "netPosition": net_position_rounded,
+        "classification": classification,
+        "unit": "kg CO2e/year"
+    }
+
+
+# ============================================================================
+# Carbon Readiness Index (CRI) Module
+# ============================================================================
+
+def get_cri_weights(dynamodb_client=None):
+    """
+    Retrieve CRI weights from DynamoDB.
+    
+    Returns default weights (50%, 30%, 20%) if not found in database.
+    
+    Args:
+        dynamodb_client: Optional boto3 DynamoDB client for testing
+        
+    Returns:
+        dict: CRI weights with keys:
+            - netCarbonPosition: float (0-1)
+            - socTrend: float (0-1)
+            - managementPractices: float (0-1)
+    """
+    # Default weights as specified in requirements
+    default_weights = {
+        "netCarbonPosition": 0.5,
+        "socTrend": 0.3,
+        "managementPractices": 0.2
+    }
+    
+    # If no DynamoDB client provided, return defaults
+    if dynamodb_client is None:
+        try:
+            import boto3
+            dynamodb_client = boto3.client('dynamodb')
+        except Exception:
+            return default_weights
+    
+    try:
+        # Query DynamoDB for latest weights
+        response = dynamodb_client.query(
+            TableName='CRIWeights',
+            KeyConditionExpression='configId = :configId',
+            ExpressionAttributeValues={
+                ':configId': {'S': 'default'}
+            },
+            ScanIndexForward=False,  # Sort descending by version
+            Limit=1
+        )
+        
+        if response.get('Items'):
+            item = response['Items'][0]
+            weights = {
+                "netCarbonPosition": float(item['netCarbonPosition']['N']),
+                "socTrend": float(item['socTrend']['N']),
+                "managementPractices": float(item['managementPractices']['N'])
+            }
+            return weights
+        else:
+            return default_weights
+            
+    except Exception as e:
+        # If any error occurs, return default weights
+        print(f"Error retrieving CRI weights: {e}")
+        return default_weights
+
+
+def set_cri_weights(weights, user_role, dynamodb_client=None):
+    """
+    Set CRI weights in DynamoDB with admin authorization check.
+    
+    Args:
+        weights: dict with keys netCarbonPosition, socTrend, managementPractices
+        user_role: str, user role (must be "admin")
+        dynamodb_client: Optional boto3 DynamoDB client for testing
+        
+    Returns:
+        dict: Result with keys:
+            - success: bool
+            - message: str
+            - weights: dict (if successful)
+            
+    Raises:
+        ValueError: If weights don't sum to 1.0 (within 0.001 tolerance)
+        PermissionError: If user is not admin
+    """
+    # Check admin authorization
+    if user_role != "admin":
+        raise PermissionError("Only admin users can modify CRI weights")
+    
+    # Validate weights sum to 1.0 (with 0.001 tolerance)
+    weight_sum = (
+        weights.get("netCarbonPosition", 0) +
+        weights.get("socTrend", 0) +
+        weights.get("managementPractices", 0)
+    )
+    
+    if abs(weight_sum - 1.0) > 0.001:
+        raise ValueError(
+            f"Weights must sum to 1.0 (got {weight_sum}). "
+            f"Difference: {abs(weight_sum - 1.0)}"
+        )
+    
+    # If no DynamoDB client provided, create one
+    if dynamodb_client is None:
+        try:
+            import boto3
+            dynamodb_client = boto3.client('dynamodb')
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Failed to connect to DynamoDB: {e}"
+            }
+    
+    try:
+        # Get current version
+        response = dynamodb_client.query(
+            TableName='CRIWeights',
+            KeyConditionExpression='configId = :configId',
+            ExpressionAttributeValues={
+                ':configId': {'S': 'default'}
+            },
+            ScanIndexForward=False,
+            Limit=1
+        )
+        
+        # Increment version
+        current_version = 0
+        if response.get('Items'):
+            current_version = int(response['Items'][0]['version']['N'])
+        new_version = current_version + 1
+        
+        # Store new weights
+        from datetime import datetime
+        dynamodb_client.put_item(
+            TableName='CRIWeights',
+            Item={
+                'configId': {'S': 'default'},
+                'version': {'N': str(new_version)},
+                'netCarbonPosition': {'N': str(weights['netCarbonPosition'])},
+                'socTrend': {'N': str(weights['socTrend'])},
+                'managementPractices': {'N': str(weights['managementPractices'])},
+                'updatedAt': {'S': datetime.utcnow().isoformat()},
+                'updatedBy': {'S': 'admin'}
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": f"CRI weights updated to version {new_version}",
+            "weights": weights,
+            "version": new_version
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Failed to update CRI weights: {e}"
+        }
+
+
+def normalize_net_position(net_position_co2e_kg_per_year, farm_size_hectares):
+    """
+    Normalize net carbon position to 0-100 scale on a per-hectare basis.
+    
+    This makes the model scalable across different farm sizes by normalizing
+    to per-hectare values before scoring.
+    
+    Normalization logic:
+    - Calculate net position per hectare
+    - Highly negative values (< -1000 kg CO2e/ha/year): score 0
+    - Zero net position: score 50
+    - Highly positive values (> +1000 kg CO2e/ha/year): score 100
+    - Linear interpolation between these points
+    
+    Args:
+        net_position_co2e_kg_per_year: float, net carbon position in kg CO2e/year
+        farm_size_hectares: float, farm size in hectares
+        
+    Returns:
+        float: Normalized score between 0 and 100
+    """
+    # Normalize to per-hectare basis
+    net_position_per_hectare = net_position_co2e_kg_per_year / farm_size_hectares
+    
+    # Define normalization bounds (per hectare)
+    MIN_NET_POSITION_PER_HA = -1000  # kg CO2e/ha/year (strong net source)
+    MAX_NET_POSITION_PER_HA = 1000   # kg CO2e/ha/year (strong net sink)
+    
+    # Clamp to bounds
+    clamped = max(MIN_NET_POSITION_PER_HA, 
+                  min(MAX_NET_POSITION_PER_HA, net_position_per_hectare))
+    
+    # Linear normalization to 0-100
+    normalized = ((clamped - MIN_NET_POSITION_PER_HA) / 
+                  (MAX_NET_POSITION_PER_HA - MIN_NET_POSITION_PER_HA)) * 100
+    
+    return normalized
+
+
+def score_management_practices(fertilizer_usage, irrigation_activity):
+    """
+    Score management practices on a 0-100 scale.
+    
+    Moderate, optimal fertilizer and irrigation levels score higher.
+    Over-fertilization can increase emissions and reduce SOC.
+    
+    Args:
+        fertilizer_usage: float, kg/hectare/year
+        irrigation_activity: float, liters/hectare/year
+        
+    Returns:
+        float: Management practices score between 0 and 100
+    """
+    # Optimal ranges (based on sustainable practices for cashew/coconut)
+    OPTIMAL_FERTILIZER_MIN = 50   # kg/ha/year
+    OPTIMAL_FERTILIZER_MAX = 150  # kg/ha/year
+    OPTIMAL_IRRIGATION_MIN = 5000   # liters/ha/year
+    OPTIMAL_IRRIGATION_MAX = 15000  # liters/ha/year
+    
+    # Score fertilizer usage
+    if OPTIMAL_FERTILIZER_MIN <= fertilizer_usage <= OPTIMAL_FERTILIZER_MAX:
+        fertilizer_score = 100
+    elif fertilizer_usage < OPTIMAL_FERTILIZER_MIN:
+        # Under-fertilization: linear scale from 0 to 100
+        fertilizer_score = (fertilizer_usage / OPTIMAL_FERTILIZER_MIN) * 100
+    else:
+        # Over-fertilization: penalize heavily
+        excess = fertilizer_usage - OPTIMAL_FERTILIZER_MAX
+        fertilizer_score = max(0, 100 - (excess / 10))
+    
+    # Score irrigation activity
+    if OPTIMAL_IRRIGATION_MIN <= irrigation_activity <= OPTIMAL_IRRIGATION_MAX:
+        irrigation_score = 100
+    elif irrigation_activity < OPTIMAL_IRRIGATION_MIN:
+        # Under-irrigation: linear scale from 0 to 100
+        irrigation_score = (irrigation_activity / OPTIMAL_IRRIGATION_MIN) * 100
+    else:
+        # Over-irrigation: penalize
+        excess = irrigation_activity - OPTIMAL_IRRIGATION_MAX
+        irrigation_score = max(0, 100 - (excess / 1000))
+    
+    # Weighted average (fertilizer 60%, irrigation 40%)
+    management_score = (fertilizer_score * 0.6) + (irrigation_score * 0.4)
+    
+    return management_score
+
+
+def calculate_carbon_readiness_index(net_position, soc_trend, management_practices, 
+                                     weights=None, dynamodb_client=None):
+    """
+    Calculate Carbon Readiness Index with configurable weights.
+    
+    Args:
+        net_position: float, net carbon position in kg CO2e/year
+        soc_trend: dict with 'status' key ("Improving", "Stable", "Declining", "Insufficient Data")
+        management_practices: dict with 'fertilizerUsage', 'irrigationActivity', 'farmSizeHectares'
+        weights: Optional dict with netCarbonPosition, socTrend, managementPractices weights
+        dynamodb_client: Optional boto3 DynamoDB client for testing
+        
+    Returns:
+        dict: CRI result with keys:
+            - score: float (0-100)
+            - classification: str ("Needs Improvement", "Moderate", "Excellent")
+            - components: dict with individual component scores
+            - weights: dict with weights used
+    """
+    # Get weights (use provided or retrieve from DynamoDB)
+    if weights is None:
+        weights = get_cri_weights(dynamodb_client)
+    else:
+        # Validate provided weights
+        weight_sum = (
+            weights.get("netCarbonPosition", 0) +
+            weights.get("socTrend", 0) +
+            weights.get("managementPractices", 0)
+        )
+        if abs(weight_sum - 1.0) > 0.001:
+            # Fall back to default weights if invalid
+            weights = get_cri_weights(dynamodb_client)
+    
+    # 1. Net Carbon Position score (0-100)
+    ncp_score = normalize_net_position(
+        net_position, 
+        management_practices['farmSizeHectares']
+    )
+    
+    # 2. SOC Trend score (0-100)
+    soc_score_map = {
+        "Improving": 100,
+        "Stable": 60,
+        "Declining": 20,
+        "Insufficient Data": 50
+    }
+    soc_score = soc_score_map.get(soc_trend.get("status", "Insufficient Data"), 50)
+    
+    # 3. Management Practices score (0-100)
+    mgmt_score = score_management_practices(
+        management_practices['fertilizerUsage'],
+        management_practices['irrigationActivity']
+    )
+    
+    # 4. Weighted sum
+    cri = (
+        ncp_score * weights["netCarbonPosition"] +
+        soc_score * weights["socTrend"] +
+        mgmt_score * weights["managementPractices"]
+    )
+    
+    # 5. Classification
+    if cri < 40:
+        classification = "Needs Improvement"
+    elif cri < 70:
+        classification = "Moderate"
+    else:
+        classification = "Excellent"
+    
+    return {
+        "score": round(cri, 2),
+        "classification": classification,
+        "components": {
+            "netCarbonPosition": round(ncp_score, 2),
+            "socTrend": round(soc_score, 2),
+            "managementPractices": round(mgmt_score, 2)
+        },
+        "weights": weights
+    }

@@ -198,30 +198,30 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
 - [x] 11. Checkpoint - Verify all calculation modules produce correct outputs
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Implement net carbon position calculation
-  - [ ] 12.1 Create net carbon position function
+- [x] 12. Implement net carbon position calculation
+  - [x] 12.1 Create net carbon position function
     - Calculate net_position = annual_sequestration_co2e - annual_emissions_co2e
     - Classify as "Net Carbon Sink" (positive) or "Net Carbon Source" (negative)
     - Store in CO₂e kg/year
     - _Requirements: 8.4, 8.5, 8.6, 8.7_
   
-  - [ ] 12.2 Write property test for net carbon position calculation
+  - [x] 12.2 Write property test for net carbon position calculation
     - **Property 22: Net Carbon Position Calculation Accuracy**
     - **Validates: Requirements 8.4**
   
-  - [ ] 12.3 Write property test for net carbon classification
+  - [x] 12.3 Write property test for net carbon classification
     - **Property 23: Net Carbon Classification Logic**
     - **Validates: Requirements 8.5, 8.6**
 
-- [ ] 13. Implement Carbon Readiness Index module
-  - [ ]* 13.1 Create CRI weight management functions
+- [x] 13. Implement Carbon Readiness Index module
+  - [x] 13.1 Create CRI weight management functions
     - Implement get_cri_weights() to retrieve weights from DynamoDB
     - Implement set_cri_weights() with admin authorization check
     - Validate weights sum to 1.0 (with 0.001 tolerance)
     - Use default weights (50%, 30%, 20%) if not specified
     - _Requirements: 9.2, 9.3, 9.4, 9.5, 9.6_
   
-  - [ ]* 13.2 Write property test for CRI weight validation
+  - [x] 13.2 Write property test for CRI weight validation
     - **Property 25: CRI Weight Validation and Default Fallback**
     - **Validates: Requirements 9.2, 9.3, 9.4**
   
@@ -229,20 +229,20 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 26: CRI Weight Modification Authorization**
     - **Validates: Requirements 9.5, 9.6**
   
-  - [ ] 13.4 Implement net position normalization function
+  - [x] 13.4 Implement net position normalization function
     - Create normalize_net_position(net_position, farm_size_hectares)
     - Normalize to per-hectare basis
     - Map -1000 to +1000 kg CO₂e/ha/year to 0-100 score
     - _Requirements: 9.1_
   
-  - [ ] 13.5 Implement CRI calculation function
+  - [x] 13.5 Implement CRI calculation function
     - Create calculate_carbon_readiness_index(net_position, soc_trend, management_practices, weights)
     - Calculate weighted sum of normalized components
     - Normalize final score to 0-100
     - Classify as "Needs Improvement" (< 40), "Moderate" (40-70), or "Excellent" (> 70)
     - _Requirements: 9.1, 9.7, 9.8, 9.9, 9.10_
   
-  - [ ] 13.6 Write property test for CRI component completeness
+  - [x] 13.6 Write property test for CRI component completeness
     - **Property 24: CRI Component Completeness**
     - **Validates: Requirements 9.1**
   
@@ -250,7 +250,7 @@ This implementation plan breaks down the CarbonReady carbon intelligence platfor
     - **Property 27: CRI Score Normalization**
     - **Validates: Requirements 9.7**
   
-  - [ ] 13.8 Write property test for CRI classification thresholds
+  - [x] 13.8 Write property test for CRI classification thresholds
     - **Property 28: CRI Classification Thresholds**
     - **Validates: Requirements 9.8, 9.9, 9.10**
 

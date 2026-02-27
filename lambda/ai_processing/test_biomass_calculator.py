@@ -2,6 +2,7 @@
 Unit tests for biomass_calculator module
 """
 import pytest
+import biomass_calculator as bc
 from biomass_calculator import (
     calculate_cashew_biomass,
     calculate_coconut_biomass,
@@ -581,7 +582,7 @@ class TestEmissionsCalculation:
 
 
 # Property-Based Tests
-from hypothesis import given, strategies as st
+from hypothesis import given, strategies as st, settings
 
 
 class TestEmissionsPropertyTests:
@@ -646,3 +647,604 @@ class TestEmissionsPropertyTests:
         assert EMISSION_FACTORS["fertilizer_n2o"] == 0.01, "IPCC Tier 1 N2O factor must be 0.01 (1%)"
         assert EMISSION_FACTORS["n2o_to_co2e"] == 298, "N2O GWP must be 298"
         assert EMISSION_FACTORS["irrigation_energy"] == 0.5, "Irrigation energy factor must be 0.5 kg CO2/1000L"
+
+
+
+class TestNetCarbonPosition:
+    """Test net carbon position calculation"""
+    
+    def test_net_carbon_sink(self):
+        """Test classification as Net Carbon Sink (positive position)"""
+        from biomass_calculator import calculate_net_carbon_position
+        
+        result = calculate_net_carbon_position(
+            annual_sequestration_co2e=5000.0,
+            annual_emissions_co2e=2000.0
+        )
+        
+        assert result['netPosition'] == 3000.0
+        assert result['classification'] == "Net Carbon Sink"
+        assert result['unit'] == "kg CO2e/year"
+    
+    def test_net_carbon_source(self):
+        """Test classification as Net Carbon Source (negative position)"""
+        from biomass_calculator import calculate_net_carbon_position
+        
+        result = calculate_net_carbon_position(
+            annual_sequestration_co2e=1000.0,
+            annual_emissions_co2e=3000.0
+        )
+        
+        assert result['netPosition'] == -2000.0
+        assert result['classification'] == "Net Carbon Source"
+        assert result['unit'] == "kg CO2e/year"
+    
+    def test_zero_net_position(self):
+        """Test zero net position (balanced)"""
+        from biomass_calculator import calculate_net_carbon_position
+        
+        result = calculate_net_carbon_position(
+            annual_sequestration_co2e=2500.0,
+            annual_emissions_co2e=2500.0
+        )
+        
+        assert result['netPosition'] == 0.0
+        assert result['classification'] == "Net Carbon Sink"
+        assert result['unit'] == "kg CO2e/year"
+    
+    def test_precision(self):
+        """Test that result is rounded to 2 decimal places"""
+        from biomass_calculator import calculate_net_carbon_position
+        
+        result = calculate_net_carbon_position(
+            annual_sequestration_co2e=1234.567,
+            annual_emissions_co2e=890.123
+        )
+        
+        # Expected: 1234.567 - 890.123 = 344.444 -> 344.44
+        assert result['netPosition'] == 344.44
+        assert len(str(result['netPosition']).split('.')[-1]) <= 2
+
+
+class TestNetCarbonPositionPropertyTests:
+    """Property-based tests for net carbon position calculation"""
+    
+    @given(
+        annual_sequestration_co2e=st.floats(min_value=0.0, max_value=100000.0, allow_nan=False, allow_infinity=False),
+        annual_emissions_co2e=st.floats(min_value=0.0, max_value=100000.0, allow_nan=False, allow_infinity=False)
+    )
+    def test_property_22_net_carbon_position_calculation_accuracy(self, annual_sequestration_co2e, annual_emissions_co2e):
+        """
+        Feature: carbon-ready, Property 22: Net Carbon Position Calculation Accuracy
+        
+        For any farm with both annual sequestration increment and annual emissions data,
+        the net carbon position SHALL equal the annual sequestration increment minus 
+        the annual emissions.
+        
+        **Validates: Requirements 8.4**
+        
+        This property verifies that:
+        1. Net position = sequestration - emissions (exact calculation)
+        2. Result is stored in CO₂e kg/year
+        3. Result has 2 decimal precision
+        """
+        from biomass_calculator import calculate_net_carbon_position
+        
+        result = calculate_net_carbon_position(
+            annual_sequestration_co2e=annual_sequestration_co2e,
+            annual_emissions_co2e=annual_emissions_co2e
+        )
+        
+        # Calculate expected net position
+        expected_net_position = annual_sequestration_co2e - annual_emissions_co2e
+        
+        # Verify calculation accuracy (with floating point tolerance)
+        assert abs(result['netPosition'] - round(expected_net_position, 2)) < 0.01, \
+            f"Net position {result['netPosition']} does not match expected {round(expected_net_position, 2)}"
+        
+        # Verify unit is correct
+        assert result['unit'] == "kg CO2e/year", \
+            f"Unit must be 'kg CO2e/year', got '{result['unit']}'"
+        
+        # Verify precision (2 decimal places)
+        net_position_str = str(result['netPosition'])
+        if '.' in net_position_str:
+            decimal_places = len(net_position_str.split('.')[-1])
+            assert decimal_places <= 2, \
+                f"Net position must have at most 2 decimal places, got {decimal_places}"
+        
+        # Verify result structure
+        assert 'netPosition' in result
+        assert 'classification' in result
+        assert 'unit' in result
+    
+    @given(
+        annual_sequestration_co2e=st.floats(min_value=0.0, max_value=100000.0, allow_nan=False, allow_infinity=False),
+        annual_emissions_co2e=st.floats(min_value=0.0, max_value=100000.0, allow_nan=False, allow_infinity=False)
+    )
+    def test_property_23_net_carbon_classification_logic(self, annual_sequestration_co2e, annual_emissions_co2e):
+        """
+        Feature: carbon-ready, Property 23: Net Carbon Classification Logic
+        
+        For any net carbon position calculation, the system SHALL classify the farm as 
+        "Net Carbon Sink" if the position is positive, and "Net Carbon Source" if the 
+        position is negative.
+        
+        **Validates: Requirements 8.5, 8.6**
+        
+        This property verifies that:
+        1. Positive net position → "Net Carbon Sink"
+        2. Negative net position → "Net Carbon Source"
+        3. Zero net position → "Net Carbon Sink" (neutral case)
+        4. Classification is consistent with the sign of net position
+        """
+        from biomass_calculator import calculate_net_carbon_position
+        
+        result = calculate_net_carbon_position(
+            annual_sequestration_co2e=annual_sequestration_co2e,
+            annual_emissions_co2e=annual_emissions_co2e
+        )
+        
+        net_position = result['netPosition']
+        classification = result['classification']
+        
+        # Verify classification logic based on net position sign
+        if net_position > 0:
+            assert classification == "Net Carbon Sink", \
+                f"Positive net position {net_position} must be classified as 'Net Carbon Sink', got '{classification}'"
+        elif net_position < 0:
+            assert classification == "Net Carbon Source", \
+                f"Negative net position {net_position} must be classified as 'Net Carbon Source', got '{classification}'"
+        else:  # net_position == 0
+            # Zero is treated as neutral sink
+            assert classification == "Net Carbon Sink", \
+                f"Zero net position must be classified as 'Net Carbon Sink', got '{classification}'"
+        
+        # Verify classification is one of the two valid values
+        assert classification in ["Net Carbon Sink", "Net Carbon Source"], \
+            f"Classification must be either 'Net Carbon Sink' or 'Net Carbon Source', got '{classification}'"
+
+
+
+# ============================================================================
+# Carbon Readiness Index (CRI) Tests
+# ============================================================================
+
+class TestCRIWeightManagement:
+    """Unit tests for CRI weight management functions"""
+    
+    def test_get_default_weights(self):
+        """Test that default weights are returned when no DB connection"""
+        weights = bc.get_cri_weights(dynamodb_client=None)
+        
+        assert weights["netCarbonPosition"] == 0.5
+        assert weights["socTrend"] == 0.3
+        assert weights["managementPractices"] == 0.2
+        assert abs(sum(weights.values()) - 1.0) < 0.001
+    
+    def test_set_weights_admin_authorization(self):
+        """Test that only admin can set weights"""
+        weights = {
+            "netCarbonPosition": 0.6,
+            "socTrend": 0.25,
+            "managementPractices": 0.15
+        }
+        
+        # Non-admin should raise PermissionError
+        with pytest.raises(PermissionError):
+            bc.set_cri_weights(weights, user_role="farmer")
+    
+    def test_set_weights_validation_sum(self):
+        """Test that weights must sum to 1.0"""
+        weights = {
+            "netCarbonPosition": 0.6,
+            "socTrend": 0.3,
+            "managementPractices": 0.2  # Sum = 1.1
+        }
+        
+        with pytest.raises(ValueError, match="must sum to 1.0"):
+            bc.set_cri_weights(weights, user_role="admin")
+    
+    def test_set_weights_tolerance(self):
+        """Test that weights within 0.001 tolerance are accepted"""
+        # This should pass (sum = 1.0001, within tolerance)
+        weights = {
+            "netCarbonPosition": 0.5001,
+            "socTrend": 0.3,
+            "managementPractices": 0.2
+        }
+        
+        # Should not raise ValueError (but may fail on DB connection)
+        try:
+            result = bc.set_cri_weights(weights, user_role="admin")
+            # If DB connection fails, that's okay for this test
+            assert result is not None
+        except ValueError:
+            pytest.fail("Weights within tolerance should not raise ValueError")
+
+
+class TestNetPositionNormalization:
+    """Unit tests for net position normalization"""
+    
+    def test_zero_net_position(self):
+        """Test that zero net position maps to score of 50"""
+        score = bc.normalize_net_position(0, farm_size_hectares=1.0)
+        assert score == 50.0
+    
+    def test_positive_net_position(self):
+        """Test that positive net position maps to score > 50"""
+        score = bc.normalize_net_position(500, farm_size_hectares=1.0)
+        assert 50 < score < 100
+    
+    def test_negative_net_position(self):
+        """Test that negative net position maps to score < 50"""
+        score = bc.normalize_net_position(-500, farm_size_hectares=1.0)
+        assert 0 < score < 50
+    
+    def test_max_net_position(self):
+        """Test that +1000 kg CO2e/ha/year maps to score of 100"""
+        score = bc.normalize_net_position(1000, farm_size_hectares=1.0)
+        assert score == 100.0
+    
+    def test_min_net_position(self):
+        """Test that -1000 kg CO2e/ha/year maps to score of 0"""
+        score = bc.normalize_net_position(-1000, farm_size_hectares=1.0)
+        assert score == 0.0
+    
+    def test_per_hectare_normalization(self):
+        """Test that normalization is per-hectare"""
+        # Same per-hectare value should give same score
+        score1 = bc.normalize_net_position(500, farm_size_hectares=1.0)
+        score2 = bc.normalize_net_position(1000, farm_size_hectares=2.0)
+        assert abs(score1 - score2) < 0.01
+    
+    def test_clamping_above_max(self):
+        """Test that values above +1000/ha are clamped to 100"""
+        score = bc.normalize_net_position(2000, farm_size_hectares=1.0)
+        assert score == 100.0
+    
+    def test_clamping_below_min(self):
+        """Test that values below -1000/ha are clamped to 0"""
+        score = bc.normalize_net_position(-2000, farm_size_hectares=1.0)
+        assert score == 0.0
+
+
+class TestManagementPracticesScoring:
+    """Unit tests for management practices scoring"""
+    
+    def test_optimal_practices(self):
+        """Test that optimal practices score 100"""
+        score = bc.score_management_practices(
+            fertilizer_usage=100,  # Within 50-150 range
+            irrigation_activity=10000  # Within 5000-15000 range
+        )
+        assert score == 100.0
+    
+    def test_zero_practices(self):
+        """Test that zero usage scores low"""
+        score = bc.score_management_practices(
+            fertilizer_usage=0,
+            irrigation_activity=0
+        )
+        assert score < 50
+    
+    def test_over_fertilization_penalty(self):
+        """Test that over-fertilization is penalized"""
+        optimal_score = bc.score_management_practices(100, 10000)
+        over_score = bc.score_management_practices(300, 10000)
+        assert over_score < optimal_score
+
+
+class TestCRICalculation:
+    """Unit tests for CRI calculation"""
+    
+    def test_excellent_classification(self):
+        """Test that high scores classify as Excellent"""
+        result = bc.calculate_carbon_readiness_index(
+            net_position=800,  # High positive
+            soc_trend={"status": "Improving"},
+            management_practices={
+                "fertilizerUsage": 100,
+                "irrigationActivity": 10000,
+                "farmSizeHectares": 1.0
+            }
+        )
+        
+        assert result["classification"] == "Excellent"
+        assert result["score"] >= 70
+    
+    def test_needs_improvement_classification(self):
+        """Test that low scores classify as Needs Improvement"""
+        result = bc.calculate_carbon_readiness_index(
+            net_position=-800,  # High negative
+            soc_trend={"status": "Declining"},
+            management_practices={
+                "fertilizerUsage": 0,
+                "irrigationActivity": 0,
+                "farmSizeHectares": 1.0
+            }
+        )
+        
+        assert result["classification"] == "Needs Improvement"
+        assert result["score"] < 40
+    
+    def test_moderate_classification(self):
+        """Test that medium scores classify as Moderate"""
+        result = bc.calculate_carbon_readiness_index(
+            net_position=0,  # Neutral
+            soc_trend={"status": "Stable"},
+            management_practices={
+                "fertilizerUsage": 100,
+                "irrigationActivity": 10000,
+                "farmSizeHectares": 1.0
+            }
+        )
+        
+        assert result["classification"] == "Moderate"
+        assert 40 <= result["score"] < 70
+    
+    def test_component_breakdown(self):
+        """Test that CRI includes component breakdown"""
+        result = bc.calculate_carbon_readiness_index(
+            net_position=500,
+            soc_trend={"status": "Improving"},
+            management_practices={
+                "fertilizerUsage": 100,
+                "irrigationActivity": 10000,
+                "farmSizeHectares": 1.0
+            }
+        )
+        
+        assert "components" in result
+        assert "netCarbonPosition" in result["components"]
+        assert "socTrend" in result["components"]
+        assert "managementPractices" in result["components"]
+    
+    def test_weights_included(self):
+        """Test that CRI result includes weights used"""
+        result = bc.calculate_carbon_readiness_index(
+            net_position=500,
+            soc_trend={"status": "Improving"},
+            management_practices={
+                "fertilizerUsage": 100,
+                "irrigationActivity": 10000,
+                "farmSizeHectares": 1.0
+            }
+        )
+        
+        assert "weights" in result
+        assert "netCarbonPosition" in result["weights"]
+        assert "socTrend" in result["weights"]
+        assert "managementPractices" in result["weights"]
+    
+    def test_custom_weights(self):
+        """Test that custom weights are used when provided"""
+        custom_weights = {
+            "netCarbonPosition": 0.6,
+            "socTrend": 0.25,
+            "managementPractices": 0.15
+        }
+        
+        result = bc.calculate_carbon_readiness_index(
+            net_position=500,
+            soc_trend={"status": "Improving"},
+            management_practices={
+                "fertilizerUsage": 100,
+                "irrigationActivity": 10000,
+                "farmSizeHectares": 1.0
+            },
+            weights=custom_weights
+        )
+        
+        assert result["weights"]["netCarbonPosition"] == 0.6
+    
+    def test_invalid_weights_fallback(self):
+        """Test that invalid weights fall back to defaults"""
+        invalid_weights = {
+            "netCarbonPosition": 0.6,
+            "socTrend": 0.3,
+            "managementPractices": 0.2  # Sum = 1.1
+        }
+        
+        result = bc.calculate_carbon_readiness_index(
+            net_position=500,
+            soc_trend={"status": "Improving"},
+            management_practices={
+                "fertilizerUsage": 100,
+                "irrigationActivity": 10000,
+                "farmSizeHectares": 1.0
+            },
+            weights=invalid_weights
+        )
+        
+        # Should fall back to default weights
+        assert result["weights"]["netCarbonPosition"] == 0.5
+
+
+class TestCRIPropertyTests:
+    """Property-based tests for CRI module"""
+    
+    @given(
+        ncp_weight=st.floats(min_value=0.0, max_value=1.0),
+        soc_weight=st.floats(min_value=0.0, max_value=1.0),
+        mgmt_weight=st.floats(min_value=0.0, max_value=1.0)
+    )
+    @settings(max_examples=20, deadline=None)
+    def test_property_25_cri_weight_validation_and_default_fallback(
+        self, ncp_weight, soc_weight, mgmt_weight
+    ):
+        """
+        Feature: carbon-ready, Property 25: CRI Weight Validation and Default Fallback
+        
+        **Validates: Requirements 9.2, 9.3, 9.4**
+        
+        For any Carbon Readiness Index calculation, if custom weighting parameters 
+        are provided, the system SHALL validate that weights sum to 100%; if validation 
+        fails or no weights are provided, the system SHALL use default weights 
+        (50% Net Carbon Position, 30% SOC trend, 20% management practices).
+        """
+        weights = {
+            "netCarbonPosition": ncp_weight,
+            "socTrend": soc_weight,
+            "managementPractices": mgmt_weight
+        }
+        
+        weight_sum = ncp_weight + soc_weight + mgmt_weight
+        
+        # Test data
+        net_position = 500
+        soc_trend = {"status": "Improving"}
+        management_practices = {
+            "fertilizerUsage": 100,
+            "irrigationActivity": 10000,
+            "farmSizeHectares": 1.0
+        }
+        
+        # Pass None to avoid AWS calls in tests
+        result = bc.calculate_carbon_readiness_index(
+            net_position=net_position,
+            soc_trend=soc_trend,
+            management_practices=management_practices,
+            weights=weights,
+            dynamodb_client=None
+        )
+        
+        # Property: If weights don't sum to 1.0 (within tolerance), 
+        # system should fall back to defaults
+        if abs(weight_sum - 1.0) > 0.001:
+            # Should use default weights
+            assert result["weights"]["netCarbonPosition"] == 0.5
+            assert result["weights"]["socTrend"] == 0.3
+            assert result["weights"]["managementPractices"] == 0.2
+        else:
+            # Should use provided weights
+            assert abs(result["weights"]["netCarbonPosition"] - ncp_weight) < 0.001
+            assert abs(result["weights"]["socTrend"] - soc_weight) < 0.001
+            assert abs(result["weights"]["managementPractices"] - mgmt_weight) < 0.001
+        
+        # Property: Weights in result must always sum to 1.0
+        result_weight_sum = (
+            result["weights"]["netCarbonPosition"] +
+            result["weights"]["socTrend"] +
+            result["weights"]["managementPractices"]
+        )
+        assert abs(result_weight_sum - 1.0) < 0.001
+
+
+class TestCRIComponentCompletenessPropertyTest:
+    """Property test for CRI component completeness"""
+    
+    @given(
+        net_position=st.floats(min_value=-2000, max_value=2000, allow_nan=False, allow_infinity=False),
+        soc_status=st.sampled_from(["Improving", "Stable", "Declining", "Insufficient Data"]),
+        fertilizer_usage=st.floats(min_value=0, max_value=500, allow_nan=False, allow_infinity=False),
+        irrigation_activity=st.floats(min_value=0, max_value=30000, allow_nan=False, allow_infinity=False),
+        farm_size_hectares=st.floats(min_value=0.1, max_value=50.0, allow_nan=False, allow_infinity=False)
+    )
+    @settings(max_examples=20, deadline=None)
+    def test_property_24_cri_component_completeness(
+        self, net_position, soc_status, fertilizer_usage, 
+        irrigation_activity, farm_size_hectares
+    ):
+        """
+        Feature: carbon-ready, Property 24: CRI Component Completeness
+        
+        **Validates: Requirements 9.1**
+        
+        For any Carbon Readiness Index calculation, the system SHALL use all 
+        three components: Net Carbon Position, Soil Organic Carbon trend, 
+        and management practices data.
+        """
+        soc_trend = {"status": soc_status}
+        management_practices = {
+            "fertilizerUsage": fertilizer_usage,
+            "irrigationActivity": irrigation_activity,
+            "farmSizeHectares": farm_size_hectares
+        }
+        
+        result = bc.calculate_carbon_readiness_index(
+            net_position=net_position,
+            soc_trend=soc_trend,
+            management_practices=management_practices,
+            dynamodb_client=None
+        )
+        
+        # Property: Result must include all three components
+        assert "components" in result
+        assert "netCarbonPosition" in result["components"]
+        assert "socTrend" in result["components"]
+        assert "managementPractices" in result["components"]
+        
+        # Property: All component scores must be between 0 and 100
+        assert 0 <= result["components"]["netCarbonPosition"] <= 100
+        assert 0 <= result["components"]["socTrend"] <= 100
+        assert 0 <= result["components"]["managementPractices"] <= 100
+        
+        # Property: Final score must be weighted sum of components
+        expected_score = (
+            result["components"]["netCarbonPosition"] * result["weights"]["netCarbonPosition"] +
+            result["components"]["socTrend"] * result["weights"]["socTrend"] +
+            result["components"]["managementPractices"] * result["weights"]["managementPractices"]
+        )
+        assert abs(result["score"] - expected_score) < 0.1
+
+
+class TestCRIClassificationThresholdsPropertyTest:
+    """Property test for CRI classification thresholds"""
+    
+    @given(
+        net_position=st.floats(min_value=-2000, max_value=2000, allow_nan=False, allow_infinity=False),
+        soc_status=st.sampled_from(["Improving", "Stable", "Declining", "Insufficient Data"]),
+        fertilizer_usage=st.floats(min_value=0, max_value=500, allow_nan=False, allow_infinity=False),
+        irrigation_activity=st.floats(min_value=0, max_value=30000, allow_nan=False, allow_infinity=False),
+        farm_size_hectares=st.floats(min_value=0.1, max_value=50.0, allow_nan=False, allow_infinity=False)
+    )
+    @settings(max_examples=20, deadline=None)
+    def test_property_28_cri_classification_thresholds(
+        self, net_position, soc_status, fertilizer_usage,
+        irrigation_activity, farm_size_hectares
+    ):
+        """
+        Feature: carbon-ready, Property 28: CRI Classification Thresholds
+        
+        **Validates: Requirements 9.8, 9.9, 9.10**
+        
+        For any Carbon Readiness Index score, the system SHALL classify it as 
+        "Needs Improvement" if score < 40, "Moderate" if 40 ≤ score < 70, 
+        and "Excellent" if score ≥ 70.
+        """
+        soc_trend = {"status": soc_status}
+        management_practices = {
+            "fertilizerUsage": fertilizer_usage,
+            "irrigationActivity": irrigation_activity,
+            "farmSizeHectares": farm_size_hectares
+        }
+        
+        result = bc.calculate_carbon_readiness_index(
+            net_position=net_position,
+            soc_trend=soc_trend,
+            management_practices=management_practices,
+            dynamodb_client=None
+        )
+        
+        score = result["score"]
+        classification = result["classification"]
+        
+        # Property: Classification must match score thresholds
+        if score < 40:
+            assert classification == "Needs Improvement", \
+                f"Score {score} should be 'Needs Improvement' but got '{classification}'"
+        elif score < 70:
+            assert classification == "Moderate", \
+                f"Score {score} should be 'Moderate' but got '{classification}'"
+        else:
+            assert classification == "Excellent", \
+                f"Score {score} should be 'Excellent' but got '{classification}'"
+        
+        # Property: Score must be between 0 and 100
+        assert 0 <= score <= 100, \
+            f"Score {score} is outside valid range [0, 100]"
+        
+        # Property: Classification must be one of the three valid values
+        assert classification in ["Needs Improvement", "Moderate", "Excellent"], \
+            f"Invalid classification: {classification}"
