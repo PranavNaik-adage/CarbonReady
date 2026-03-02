@@ -87,6 +87,14 @@ class ComputeStack(Stack):
                 aws_iot_sql_version="2016-03-23",
             ),
         )
+        
+        # Grant IoT Rule permission to invoke Lambda
+        self.data_ingestion_lambda.add_permission(
+            "AllowIoTInvoke",
+            principal=iam.ServicePrincipal("iot.amazonaws.com"),
+            action="lambda:InvokeFunction",
+            source_arn=f"arn:aws:iot:{self.region}:{self.account}:rule/{self.sensor_data_rule.rule_name}",
+        )
 
         # AI Processing Lambda
         # Performs carbon calculations on a scheduled basis

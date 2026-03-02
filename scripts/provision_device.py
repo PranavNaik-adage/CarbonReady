@@ -61,6 +61,9 @@ def create_iot_thing(device_id, farm_id, certificate_arn):
     print(f"\nCreating IoT Thing: {device_id}...")
     
     # Create Thing with farm_id attribute
+    # Note: AWS IoT attributes don't allow + character, so use Z format for UTC
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    
     try:
         iot.create_thing(
             thingName=device_id,
@@ -68,7 +71,7 @@ def create_iot_thing(device_id, farm_id, certificate_arn):
                 'attributes': {
                     'farmId': farm_id,
                     'deviceType': 'ESP32-WROOM-32',
-                    'provisionedAt': datetime.now(timezone.utc).isoformat()
+                    'provisionedAt': timestamp
                 }
             }
         )
@@ -81,7 +84,7 @@ def create_iot_thing(device_id, farm_id, certificate_arn):
                 'attributes': {
                     'farmId': farm_id,
                     'deviceType': 'ESP32-WROOM-32',
-                    'provisionedAt': datetime.now(timezone.utc).isoformat()
+                    'provisionedAt': timestamp
                 }
             }
         )

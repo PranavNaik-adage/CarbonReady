@@ -75,6 +75,17 @@ MY_AWS_VALUES.md
 quick-test.ps1
 test-ingestion.ps1
 
+# Device certificates and keys (CRITICAL - NEVER COMMIT!)
+device_certs/
+PASTE_THESE_CERTIFICATES.txt
+*.pem
+*.key
+*.crt
+device_config.json
+
+# Firmware with credentials (use .template instead)
+firmware/esp32/test_without_sensors/test_without_sensors.ino
+
 # Test data files (generated locally)
 test-valid-sensor-data.json
 test-bad-hash-data.json
