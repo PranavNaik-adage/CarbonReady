@@ -46,7 +46,7 @@ def lambda_handler(event, context):
             "httpMethod": http_method,
             "path": path,
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         # Route to appropriate handler
@@ -82,7 +82,7 @@ def lambda_handler(event, context):
             "httpMethod": event.get('httpMethod'),
             "path": event.get('path'),
             "functionName": context.function_name,
-            "requestId": context.request_id,
+            "requestId": context.aws_request_id,
             "timestamp": datetime.utcnow().isoformat()
         }))
         
@@ -91,7 +91,7 @@ def lambda_handler(event, context):
             send_sns_notification(
                 CRITICAL_ALERTS_TOPIC,
                 "Dashboard API Lambda Error",
-                f"Function: {context.function_name}\nError: {str(e)}\nPath: {event.get('path')}\nRequestId: {context.request_id}"
+                f"Function: {context.function_name}\nError: {str(e)}\nPath: {event.get('path')}\nRequestId: {context.aws_request_id}"
             )
         
         return error_response(500, 'INTERNAL_ERROR', 'An unexpected error occurred. Please try again later.', context)
@@ -116,7 +116,7 @@ def error_response(status_code, error_code, message, context, details=None):
         "statusCode": status_code,
         "errorCode": error_code,
         "errorMessage": message,
-        "requestId": context.request_id
+        "requestId": context.aws_request_id
     }))
     
     return {
@@ -134,7 +134,7 @@ def success_response(data, context):
     print(json.dumps({
         "level": "INFO",
         "message": "API success response",
-        "requestId": context.request_id
+        "requestId": context.aws_request_id
     }))
     
     return {
@@ -193,7 +193,7 @@ def get_carbon_position(farm_id, context):
             "error": str(e),
             "errorType": type(e).__name__,
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return error_response(500, 'QUERY_ERROR', 'Unable to retrieve carbon position data', context)
 
@@ -217,42 +217,48 @@ def get_carbon_readiness_index(farm_id, context):
             return error_response(404, 'NO_DATA', f'No carbon calculations found for farm {farm_id}', context)
         
         calculation = response['Items'][0]
-        cri_data = calculation.get('carbonReadinessIndex', {})
         
-        if not cri_data:
+        # CRI is stored as a simple number, not a map
+        cri_score = calculation.get('carbonReadinessIndex')
+        if not cri_score:
             return error_response(404, 'NO_CRI_DATA', 'Carbon Readiness Index not yet calculated for this farm', context)
+        
+        # Get components and weights
+        cri_components = calculation.get('criComponents', {})
+        cri_weights = calculation.get('criWeights', {})
+        cri_classification = calculation.get('criClassification', 'Unknown')
         
         # Build detailed breakdown response
         result = {
             'farmId': farm_id,
             'carbonReadinessIndex': {
-                'score': cri_data['score'],
-                'classification': cri_data['classification'],
+                'score': float(cri_score),
+                'classification': cri_classification,
                 'components': {
                     'netCarbonPosition': {
-                        'score': cri_data['components']['netCarbonPosition'],
-                        'weight': cri_data['weights']['netCarbonPosition'],
+                        'score': float(cri_components.get('netCarbonPosition', 0)),
+                        'weight': float(cri_weights.get('netCarbonPosition', 0)),
                         'contribution': round(
-                            cri_data['components']['netCarbonPosition'] * 
-                            cri_data['weights']['netCarbonPosition'], 
+                            float(cri_components.get('netCarbonPosition', 0)) * 
+                            float(cri_weights.get('netCarbonPosition', 0)), 
                             2
                         )
                     },
                     'socTrend': {
-                        'score': cri_data['components']['socTrend'],
-                        'weight': cri_data['weights']['socTrend'],
+                        'score': float(cri_components.get('socTrend', 0)),
+                        'weight': float(cri_weights.get('socTrend', 0)),
                         'contribution': round(
-                            cri_data['components']['socTrend'] * 
-                            cri_data['weights']['socTrend'], 
+                            float(cri_components.get('socTrend', 0)) * 
+                            float(cri_weights.get('socTrend', 0)), 
                             2
                         )
                     },
                     'managementPractices': {
-                        'score': cri_data['components']['managementPractices'],
-                        'weight': cri_data['weights']['managementPractices'],
+                        'score': float(cri_components.get('managementPractices', 0)),
+                        'weight': float(cri_weights.get('managementPractices', 0)),
                         'contribution': round(
-                            cri_data['components']['managementPractices'] * 
-                            cri_data['weights']['managementPractices'], 
+                            float(cri_components.get('managementPractices', 0)) * 
+                            float(cri_weights.get('managementPractices', 0)), 
                             2
                         )
                     }
@@ -260,8 +266,14 @@ def get_carbon_readiness_index(farm_id, context):
                 'scoringLogicVersion': calculation.get('modelVersions', {}).get('cri', 'v1.0.0'),
                 'calculatedAt': calculation['calculatedAt']
             },
-            'socTrend': calculation.get('socTrend', {}),
-            'netCarbonPosition': calculation['netCarbonPosition']
+            'socTrend': {
+                'status': calculation.get('socTrend', 'Unknown'),
+                'score': 0,
+                'biomassReturn': 0,
+                'managementScore': 0,
+                'dataSpanDays': 0
+            },
+            'netCarbonPosition': float(calculation.get('netCarbonPosition', 0))
         }
         
         return success_response(result, context)
@@ -274,7 +286,7 @@ def get_carbon_readiness_index(farm_id, context):
             "errorType": type(e).__name__,
             "stackTrace": traceback.format_exc(),
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return error_response(500, 'QUERY_ERROR', 'Unable to retrieve Carbon Readiness Index data', context)
 
@@ -299,18 +311,19 @@ def get_latest_sensor_data(farm_id, context):
         
         sensor_data = response['Items'][0]
         
-        # Convert timestamp to ISO format
-        timestamp = datetime.utcfromtimestamp(sensor_data['timestamp']).isoformat() + 'Z'
+        # Convert timestamp to ISO format (handle Decimal)
+        timestamp_value = float(sensor_data['timestamp'])
+        timestamp = datetime.utcfromtimestamp(timestamp_value).isoformat() + 'Z'
         
         result = {
             'farmId': farm_id,
             'deviceId': sensor_data.get('deviceId'),
             'timestamp': timestamp,
             'readings': {
-                'soilMoisture': sensor_data.get('soilMoisture'),
-                'soilTemperature': sensor_data.get('soilTemperature'),
-                'airTemperature': sensor_data.get('airTemperature'),
-                'humidity': sensor_data.get('humidity')
+                'soilMoisture': float(sensor_data.get('soilMoisture', 0)),
+                'soilTemperature': float(sensor_data.get('soilTemperature', 0)),
+                'airTemperature': float(sensor_data.get('airTemperature', 0)),
+                'humidity': float(sensor_data.get('humidity', 0))
             },
             'validationStatus': sensor_data.get('validationStatus', 'valid')
         }
@@ -324,7 +337,7 @@ def get_latest_sensor_data(farm_id, context):
             "error": str(e),
             "errorType": type(e).__name__,
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return error_response(500, 'QUERY_ERROR', 'Unable to retrieve sensor data', context)
 
@@ -355,13 +368,29 @@ def get_historical_trends(farm_id, days, context):
         # Build time series data
         trends = []
         for item in response['Items']:
+            # Handle both old and new data structures
+            cri_score = item.get('carbonReadinessIndex')
+            if isinstance(cri_score, dict):
+                cri_score = cri_score.get('score')
+            
+            soc_trend = item.get('socTrend')
+            if isinstance(soc_trend, dict):
+                soc_trend = soc_trend.get('status')
+            
+            # Get emissions - handle both structures
+            emissions = item.get('emissions')
+            if isinstance(emissions, dict):
+                total_emissions = emissions.get('totalEmissions', 0)
+            else:
+                total_emissions = emissions or 0
+            
             trends.append({
                 'date': item['calculatedAt'],
-                'netCarbonPosition': item['netCarbonPosition'],
-                'annualSequestration': item['annualSequestration'],
-                'totalEmissions': item['emissions']['totalEmissions'],
-                'carbonReadinessIndex': item.get('carbonReadinessIndex', {}).get('score'),
-                'socTrend': item.get('socTrend', {}).get('status')
+                'netCarbonPosition': float(item.get('netCarbonPosition', 0)),
+                'annualSequestration': float(item.get('annualSequestration', 0)),
+                'totalEmissions': float(total_emissions),
+                'carbonReadinessIndex': float(cri_score) if cri_score else None,
+                'socTrend': soc_trend
             })
         
         result = {
@@ -381,7 +410,7 @@ def get_historical_trends(farm_id, days, context):
             "errorType": type(e).__name__,
             "farmId": farm_id,
             "days": days,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return error_response(500, 'QUERY_ERROR', 'Unable to retrieve historical trends', context)
 
@@ -436,7 +465,7 @@ def get_cri_weights(context):
             "message": "Error getting CRI weights",
             "error": str(e),
             "errorType": type(e).__name__,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return error_response(500, 'QUERY_ERROR', 'Unable to retrieve CRI weights', context)
 
@@ -464,7 +493,7 @@ def update_cri_weights(weights, event, context):
                 "level": "WARNING",
                 "message": "Unauthorized CRI weight modification attempt",
                 "username": username,
-                "requestId": context.request_id,
+                "requestId": context.aws_request_id,
                 "timestamp": datetime.utcnow().isoformat()
             }))
             return error_response(
@@ -538,7 +567,7 @@ def update_cri_weights(weights, event, context):
             "username": username,
             "version": new_version,
             "weights": weights,
-            "requestId": context.request_id,
+            "requestId": context.aws_request_id,
             "timestamp": datetime.utcnow().isoformat()
         }))
         
@@ -560,7 +589,7 @@ def update_cri_weights(weights, event, context):
             "error": str(e),
             "errorType": type(e).__name__,
             "stackTrace": traceback.format_exc(),
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return error_response(500, 'UPDATE_ERROR', 'Unable to update CRI weights', context)
 
@@ -582,3 +611,4 @@ def send_sns_notification(topic_arn, subject, message):
             "topicArn": topic_arn,
             "subject": subject
         }))
+

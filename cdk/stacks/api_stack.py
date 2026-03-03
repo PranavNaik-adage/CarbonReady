@@ -172,7 +172,7 @@ class ApiStack(Stack):
             authorization_type=apigateway.AuthorizationType.COGNITO,
         )
 
-        # Dashboard endpoints - all require authentication
+        # Dashboard endpoints - require authentication
         carbon_position = farm.add_resource("carbon-position")
         carbon_position.add_method(
             "GET",

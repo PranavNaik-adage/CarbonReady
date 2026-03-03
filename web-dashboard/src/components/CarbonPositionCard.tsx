@@ -5,12 +5,28 @@ interface Props {
 }
 
 function CarbonPositionCard({ data }: Props) {
+  // Safety checks
+  if (!data || !data.emissions) {
+    return (
+      <div className="card">
+        <h2>🌍 Net Carbon Position</h2>
+        <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+          No carbon position data available
+        </div>
+      </div>
+    );
+  }
+
   const getBadgeClass = (classification: string) => {
     return classification === 'Net Carbon Sink' ? 'badge sink' : 'badge source';
   };
 
   const isSink = data.classification === 'Net Carbon Sink';
-  const sequestrationPercent = (data.annualSequestration / (data.annualSequestration + data.emissions.totalEmissions)) * 100;
+  const totalEmissions = data.emissions?.totalEmissions || 0;
+  const annualSequestration = data.annualSequestration || 0;
+  const sequestrationPercent = totalEmissions > 0 
+    ? (annualSequestration / (annualSequestration + totalEmissions)) * 100 
+    : 100;
 
   return (
     <div className="card">
@@ -77,8 +93,8 @@ function CarbonPositionCard({ data }: Props) {
           fontSize: '13px',
           fontWeight: 700
         }}>
-          <span style={{ color: 'var(--green-400)' }}>+{data.annualSequestration.toFixed(0)}</span>
-          <span style={{ color: 'var(--red-400)' }}>-{data.emissions.totalEmissions.toFixed(0)}</span>
+          <span style={{ color: 'var(--green-400)' }}>+{annualSequestration.toFixed(0)}</span>
+          <span style={{ color: 'var(--red-400)' }}>-{totalEmissions.toFixed(0)}</span>
         </div>
       </div>
 
@@ -87,25 +103,25 @@ function CarbonPositionCard({ data }: Props) {
         <div className="breakdown-item">
           <span className="breakdown-label">🌱 Annual Sequestration</span>
           <span className="breakdown-value" style={{ color: 'var(--green-400)' }}>
-            +{data.annualSequestration.toFixed(2)} kg CO₂e/yr
+            +{annualSequestration.toFixed(2)} kg CO₂e/yr
           </span>
         </div>
         <div className="breakdown-item">
           <span className="breakdown-label">💨 Total Emissions</span>
           <span className="breakdown-value" style={{ color: 'var(--red-400)' }}>
-            -{data.emissions.totalEmissions.toFixed(2)} kg CO₂e/yr
+            -{totalEmissions.toFixed(2)} kg CO₂e/yr
           </span>
         </div>
         <div className="breakdown-item" style={{ paddingLeft: '20px' }}>
           <span className="breakdown-label" style={{ fontSize: '12px' }}>• Fertilizer</span>
           <span className="breakdown-value" style={{ fontSize: '12px' }}>
-            {data.emissions.fertilizerEmissions.toFixed(2)}
+            {(data.emissions?.fertilizerEmissions || 0).toFixed(2)}
           </span>
         </div>
         <div className="breakdown-item" style={{ paddingLeft: '20px' }}>
           <span className="breakdown-label" style={{ fontSize: '12px' }}>• Irrigation</span>
           <span className="breakdown-value" style={{ fontSize: '12px' }}>
-            {data.emissions.irrigationEmissions.toFixed(2)}
+            {(data.emissions?.irrigationEmissions || 0).toFixed(2)}
           </span>
         </div>
       </div>

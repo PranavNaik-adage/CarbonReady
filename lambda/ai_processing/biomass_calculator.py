@@ -24,6 +24,10 @@ def calculate_cashew_biomass(dbh_cm, age_years):
     
     Validates: Requirements 4.1, 4.2
     """
+    # Convert Decimal to float if needed
+    dbh_cm = float(dbh_cm)
+    age_years = float(age_years)
+    
     # Coefficients calibrated for Goa region
     a = 0.28
     b = 2.15
@@ -49,6 +53,10 @@ def calculate_coconut_biomass(height_m, age_years):
     
     Validates: Requirements 4.1, 4.2
     """
+    # Convert Decimal to float if needed
+    height_m = float(height_m)
+    age_years = float(age_years)
+    
     # Coefficients calibrated for Goa region
     a = 15.3
     b = 1.85
@@ -78,8 +86,8 @@ def calculate_farm_biomass(metadata):
     """
     crop_type = metadata.get("cropType")
     tree_age = metadata.get("treeAge")
-    plantation_density = metadata.get("plantationDensity")
-    farm_size_hectares = metadata.get("farmSizeHectares")
+    plantation_density = float(metadata.get("plantationDensity", 0))
+    farm_size_hectares = float(metadata.get("farmSizeHectares", 0))
     
     # Calculate per-tree biomass based on crop type
     if crop_type == "cashew":
@@ -388,6 +396,9 @@ def estimate_sequestration_from_growth_curves(tree_age, crop_type, region, dynam
     import boto3
     import os
     
+    # Convert tree_age to float
+    tree_age = float(tree_age)
+    
     # Use provided client or create default
     if dynamodb_client is None:
         dynamodb = boto3.resource('dynamodb')
@@ -514,9 +525,11 @@ def calculate_chapman_richards_biomass(age, parameters):
     """
     import math
     
-    a = parameters['a']
-    b = parameters['b']
-    c = parameters['c']
+    # Convert Decimal to float
+    a = float(parameters['a'])
+    b = float(parameters['b'])
+    c = float(parameters['c'])
+    age = float(age)
     
     # Handle edge case for age 0 or negative
     if age <= 0:
@@ -559,9 +572,9 @@ def calculate_annual_sequestration(farm_id, metadata, historical_biomass=None, d
     Validates: Requirements 8.1, 8.2, 8.3
     """
     crop_type = metadata.get("cropType")
-    tree_age = metadata.get("treeAge")
-    plantation_density = metadata.get("plantationDensity")
-    farm_size_hectares = metadata.get("farmSizeHectares")
+    tree_age = float(metadata.get("treeAge", 0))
+    plantation_density = float(metadata.get("plantationDensity", 0))
+    farm_size_hectares = float(metadata.get("farmSizeHectares", 0))
     
     # Calculate current total farm biomass
     current_biomass = calculate_farm_biomass(metadata)
@@ -569,7 +582,7 @@ def calculate_annual_sequestration(farm_id, metadata, historical_biomass=None, d
     # Determine biomass increment
     if historical_biomass is not None and historical_biomass > 0:
         # Method 1: Use historical data (preferred)
-        biomass_increment = current_biomass - historical_biomass
+        biomass_increment = current_biomass - float(historical_biomass)
         method = "historical"
     else:
         # Method 2: Use growth curves (fallback)
@@ -581,8 +594,8 @@ def calculate_annual_sequestration(farm_id, metadata, historical_biomass=None, d
             dynamodb_client=dynamodb_client
         )
         
-        # Scale to farm level
-        total_trees = plantation_density * farm_size_hectares
+        # Scale to farm level (convert Decimal to float)
+        total_trees = float(plantation_density) * float(farm_size_hectares)
         biomass_increment = per_tree_increment * total_trees
         method = "growth_curve"
     
@@ -640,9 +653,10 @@ def calculate_emissions(metadata):
     
     Validates: Requirements 7.1, 7.2, 7.3, 7.4
     """
-    fertilizer_usage = metadata.get("fertilizerUsage", 0)
-    irrigation_activity = metadata.get("irrigationActivity", 0)
-    farm_size_hectares = metadata.get("farmSizeHectares")
+    # Convert Decimal to float
+    fertilizer_usage = float(metadata.get("fertilizerUsage", 0))
+    irrigation_activity = float(metadata.get("irrigationActivity", 0))
+    farm_size_hectares = float(metadata.get("farmSizeHectares", 0))
     
     # 1. Fertilizer emissions
     # Calculate total fertilizer for entire farm
@@ -901,6 +915,10 @@ def normalize_net_position(net_position_co2e_kg_per_year, farm_size_hectares):
     Returns:
         float: Normalized score between 0 and 100
     """
+    # Convert to float
+    net_position_co2e_kg_per_year = float(net_position_co2e_kg_per_year)
+    farm_size_hectares = float(farm_size_hectares)
+    
     # Normalize to per-hectare basis
     net_position_per_hectare = net_position_co2e_kg_per_year / farm_size_hectares
     

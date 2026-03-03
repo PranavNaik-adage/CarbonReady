@@ -1,0 +1,1 @@
+{"status": "success", "processed": 2, "successful": 2, "failed": 0, "results": [{"farmId": "farm-002", "status": "success", "calculatedAt": "2026-03-03T04:47:08.502002", "carbonReadinessIndex": 85.0, "netCarbonPosition": 7085.83}, {"farmId": "farm-001", "status": "success", "calculatedAt": "2026-03-03T04:47:08.599889", "carbonReadinessIndex": 85.0, "netCarbonPosition": 7085.83}]}

@@ -6,11 +6,32 @@ import type {
   CRIWeights,
   ApiError
 } from './types';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
 class ApiClient {
+  private async getAuthHeaders(): Promise<Record<string, string>> {
+    try {
+      const session = await fetchAuthSession();
+      const idToken = session.tokens?.idToken?.toString();
+      
+      if (idToken) {
+        return {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        };
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    
+    return {
+      'Content-Type': 'application/json',
+    };
+  }
+
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     // Use mock data if enabled
     if (USE_MOCK_DATA) {
@@ -18,12 +39,13 @@ class ApiClient {
     }
 
     const url = `${API_BASE_URL}${endpoint}`;
+    const headers = await this.getAuthHeaders();
     
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          ...headers,
           ...options?.headers,
         },
       });
@@ -109,15 +131,16 @@ class ApiClient {
     }
 
     if (endpoint.includes('/sensor-data/latest')) {
+      // Using actual data from esp32-test device
       return {
         farmId: 'farm-001',
-        deviceId: 'esp32-001',
-        timestamp: new Date(Date.now() - 1800000).toISOString(),
+        deviceId: 'esp32-test',
+        timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
         readings: {
-          soilMoisture: 45.2,
-          soilTemperature: 24.5,
-          airTemperature: 28.3,
-          humidity: 72.8
+          soilMoisture: 54.0,  // From your ESP32
+          soilTemperature: 24.0,  // From your ESP32
+          airTemperature: 27.0,  // From your ESP32
+          humidity: 55.0  // From your ESP32
         },
         validationStatus: 'valid'
       } as T;

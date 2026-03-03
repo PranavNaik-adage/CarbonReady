@@ -36,11 +36,17 @@ function Dashboard() {
           api.getHistoricalTrends(farmId, 365)
         ]);
 
+        console.log('Carbon Position Data:', positionData);
+        console.log('CRI Data:', criData);
+        console.log('Sensor Data:', sensorDataResult);
+        console.log('Historical Trends:', trendsData);
+
         setCarbonPosition(positionData);
         setCRI(criData);
         setSensorData(sensorDataResult);
         setHistoricalTrends(trendsData);
       } catch (err) {
+        console.error('Dashboard fetch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
       } finally {
         setLoading(false);

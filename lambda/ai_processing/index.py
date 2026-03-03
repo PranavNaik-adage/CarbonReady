@@ -53,7 +53,7 @@ def lambda_handler(event, context):
             "level": "INFO",
             "message": "Starting AI processing batch",
             "functionName": context.function_name,
-            "requestId": context.request_id,
+            "requestId": context.aws_request_id,
             "timestamp": datetime.utcnow().isoformat()
         }))
         
@@ -64,7 +64,7 @@ def lambda_handler(event, context):
             "level": "INFO",
             "message": f"Processing carbon calculations for {len(farms)} farms",
             "farmCount": len(farms),
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         results = []
@@ -92,7 +92,7 @@ def lambda_handler(event, context):
                     "stackTrace": traceback.format_exc(),
                     "farmId": farm_id,
                     "functionName": context.function_name,
-                    "requestId": context.request_id,
+                    "requestId": context.aws_request_id,
                     "timestamp": datetime.utcnow().isoformat()
                 }))
                 
@@ -106,7 +106,7 @@ def lambda_handler(event, context):
             "totalFarms": len(farms),
             "successfulFarms": len(results) - len(errors),
             "failedFarms": len(errors),
-            "requestId": context.request_id,
+            "requestId": context.aws_request_id,
             "timestamp": datetime.utcnow().isoformat()
         }))
         
@@ -135,7 +135,7 @@ def lambda_handler(event, context):
             "errorType": type(e).__name__,
             "stackTrace": traceback.format_exc(),
             "functionName": context.function_name,
-            "requestId": context.request_id,
+            "requestId": context.aws_request_id,
             "timestamp": datetime.utcnow().isoformat()
         }
         print(json.dumps(error_details))
@@ -145,7 +145,7 @@ def lambda_handler(event, context):
             send_sns_notification(
                 CRITICAL_ALERTS_TOPIC,
                 "AI Processing Lambda Critical Error",
-                f"Function: {context.function_name}\nError: {str(e)}\nRequestId: {context.request_id}\n\nStack Trace:\n{traceback.format_exc()}"
+                f"Function: {context.function_name}\nError: {str(e)}\nRequestId: {context.aws_request_id}\n\nStack Trace:\n{traceback.format_exc()}"
             )
         
         raise
@@ -304,7 +304,7 @@ def process_farm_carbon(farm_id, context):
         "level": "INFO",
         "message": f"Processing carbon calculations for farm: {farm_id}",
         "farmId": farm_id,
-        "requestId": context.request_id
+        "requestId": context.aws_request_id
     }))
     
     try:
@@ -393,7 +393,7 @@ def process_farm_carbon(farm_id, context):
             "farmId": farm_id,
             "carbonReadinessIndex": cri_result['score'],
             "netCarbonPosition": net_position_result['netPosition'],
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         return {
@@ -412,7 +412,7 @@ def process_farm_carbon(farm_id, context):
             "errorType": type(e).__name__,
             "stackTrace": traceback.format_exc(),
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         raise
 

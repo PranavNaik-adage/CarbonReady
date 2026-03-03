@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Cognito Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
+</head>
+<body>
+    <h1>Test Cognito Login</h1>
+    <form id="loginForm">
+        <input type="text" id="username" placeholder="Username" value="testuser"><br><br>
+        <input type="password" id="password" placeholder="Password"><br><br>
+        <button type="submit">Login</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        const poolData = {
+            UserPoolId: 'ap-south-1_PrdMUGun8',
+            ClientId: 'irtrn5m2hfu15everuub47erq'
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const authenticationData = {
+                Username: username,
+                Password: password,
+            };
+            const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+            
+            const userData = {
+                Username: username,
+                Pool: userPool
+            };
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+            
+            document.getElementById('result').innerHTML = 'Logging in...';
+            
+            cognitoUser.authenticateUser(authenticationDetails, {
+                onSuccess: function(result) {
+                    document.getElementById('result').innerHTML = '<pre style="color: green;">Login successful!\n\n' + 
+                        'ID Token: ' + result.getIdToken().getJwtToken().substring(0, 50) + '...\n' +
+                        'Access Token: ' + result.getAccessToken().getJwtToken().substring(0, 50) + '...</pre>';
+                },
+                onFailure: function(err) {
+                    document.getElementById('result').innerHTML = '<pre style="color: red;">Login failed:\n' + 
+                        JSON.stringify(err, null, 2) + '</pre>';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
