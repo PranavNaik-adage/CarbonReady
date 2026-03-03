@@ -36,8 +36,8 @@ def lambda_handler(event, context):
     try:
         http_method = event['httpMethod']
         path = event['path']
-        path_parameters = event.get('pathParameters', {})
-        farm_id = path_parameters.get('farmId')
+        path_parameters = event.get('pathParameters') or {}
+        farm_id = path_parameters.get('farmId') if path_parameters else None
         
         # Log incoming request
         print(json.dumps({
@@ -447,11 +447,11 @@ def get_cri_weights(context):
             weights_config = response['Items'][0]
             result = {
                 'configId': weights_config['configId'],
-                'version': weights_config['version'],
+                'version': int(weights_config['version']),
                 'weights': {
-                    'netCarbonPosition': weights_config['netCarbonPosition'],
-                    'socTrend': weights_config['socTrend'],
-                    'managementPractices': weights_config['managementPractices']
+                    'netCarbonPosition': float(weights_config['netCarbonPosition']),
+                    'socTrend': float(weights_config['socTrend']),
+                    'managementPractices': float(weights_config['managementPractices'])
                 },
                 'updatedAt': weights_config.get('updatedAt'),
                 'updatedBy': weights_config.get('updatedBy')
