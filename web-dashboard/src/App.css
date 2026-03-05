@@ -313,6 +313,116 @@
   overflow: visible;
 }
 
+/* ===== Dashboard Sections ===== */
+.dashboard-section {
+  margin-bottom: 32px;
+}
+
+.dashboard-section-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dashboard-section-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--neutral-50);
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-section-header p {
+  font-size: 13px;
+  color: var(--neutral-400);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ===== Farm Summary Header ===== */
+.farm-summary-header {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 24px 28px;
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  animation: fadeInUp 0.6s var(--ease-out) both;
+}
+
+.farm-summary-main {
+  display: flex;
+  gap: 32px;
+  flex: 1;
+}
+
+.farm-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.farm-summary-icon {
+  font-size: 24px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+}
+
+.farm-summary-label {
+  font-size: 11px;
+  color: var(--neutral-400);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.farm-summary-value {
+  font-size: 15px;
+  color: var(--neutral-50);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.farm-summary-metrics {
+  display: flex;
+  gap: 24px;
+  padding-left: 24px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.farm-summary-metric {
+  text-align: right;
+}
+
+.farm-summary-metric-label {
+  font-size: 11px;
+  color: var(--neutral-400);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.farm-summary-metric-value {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
 /* ===== Card ===== */
 .card {
   background: var(--bg-card);
@@ -1541,6 +1651,31 @@
 
   .page-header h2 {
     font-size: 18px;
+  }
+
+  /* Farm summary header mobile */
+  .farm-summary-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+  }
+
+  .farm-summary-main {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .farm-summary-metrics {
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
+    padding-left: 0;
+    padding-top: 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .farm-summary-metric {
+    text-align: left;
   }
 
   /* Farmer dashboard mobile */

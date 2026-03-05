@@ -11,6 +11,8 @@ import CarbonPositionCard from '../components/CarbonPositionCard';
 import CRICard from '../components/CRICard';
 import SensorDataCard from '../components/SensorDataCard';
 import HistoricalTrendsChart from '../components/HistoricalTrendsChart';
+import CarbonOpportunityCard from '../components/CarbonOpportunityCard';
+import ClimateImpactCard from '../components/ClimateImpactCard';
 
 function Dashboard() {
   const { farmId } = useParams<{ farmId: string }>();
@@ -97,10 +99,127 @@ function Dashboard() {
       </div>
 
       <div className="container">
-        <div className="dashboard-grid">
-          {carbonPosition && <CarbonPositionCard data={carbonPosition} />}
-          {cri && <CRICard data={cri} />}
-          {sensorData && <SensorDataCard data={sensorData} />}
+        {/* Farm Summary Header */}
+        <div className="farm-summary-header">
+          <div className="farm-summary-main">
+            <div className="farm-summary-item">
+              <span className="farm-summary-icon">🏡</span>
+              <div>
+                <div className="farm-summary-label">Farm Name</div>
+                <div className="farm-summary-value">{farmId}</div>
+              </div>
+            </div>
+            <div className="farm-summary-item">
+              <span className="farm-summary-icon">📍</span>
+              <div>
+                <div className="farm-summary-label">Location</div>
+                <div className="farm-summary-value">Kerala, India</div>
+              </div>
+            </div>
+            <div className="farm-summary-item">
+              <span className="farm-summary-icon">🌴</span>
+              <div>
+                <div className="farm-summary-label">Crop Type</div>
+                <div className="farm-summary-value">Coconut & Cashew</div>
+              </div>
+            </div>
+            <div className="farm-summary-item">
+              <span className="farm-summary-icon">📏</span>
+              <div>
+                <div className="farm-summary-label">Farm Size</div>
+                <div className="farm-summary-value">1.2 ha</div>
+              </div>
+            </div>
+          </div>
+          <div className="farm-summary-metrics">
+            <div className="farm-summary-metric">
+              <div className="farm-summary-metric-label">Sustainability Score</div>
+              <div className="farm-summary-metric-value" style={{ 
+                color: cri && cri.carbonReadinessIndex.score >= 70 ? 'var(--green-400)' : 
+                       cri && cri.carbonReadinessIndex.score >= 40 ? 'var(--amber-400)' : 'var(--red-400)' 
+              }}>
+                {cri ? cri.carbonReadinessIndex.score.toFixed(0) : '--'}/100
+                {cri && (
+                  <span style={{ 
+                    fontSize: '11px', 
+                    marginLeft: '6px',
+                    color: cri.carbonReadinessIndex.score >= 70 ? 'var(--green-400)' : 
+                           cri.carbonReadinessIndex.score >= 40 ? 'var(--amber-400)' : 'var(--red-400)'
+                  }}>
+                    {cri.carbonReadinessIndex.score >= 70 ? '🟢 Excellent' : 
+                     cri.carbonReadinessIndex.score >= 40 ? '🟡 Moderate' : '🔴 Needs Improvement'}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="farm-summary-metric">
+              <div className="farm-summary-metric-label">Net Carbon Position</div>
+              <div className="farm-summary-metric-value" style={{ 
+                color: carbonPosition?.classification === 'Net Carbon Sink' ? 'var(--green-400)' : 'var(--red-400)' 
+              }}>
+                {carbonPosition ? `${carbonPosition.classification === 'Net Carbon Sink' ? '+' : ''}${carbonPosition.netCarbonPosition.toFixed(0)}` : '--'} kg CO₂e/yr
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* System Status */}
+        {sensorData && (
+          <div style={{
+            background: 'var(--bg-elevated)',
+            borderRadius: '12px',
+            padding: '14px 20px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            border: '1px solid var(--border-subtle)',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="live-dot" style={{ width: '8px', height: '8px' }} />
+                <span style={{ fontSize: '13px', color: 'var(--green-400)', fontWeight: 600 }}>
+                  System Online
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--neutral-500)' }}>
+                Last Update: {new Date(sensorData.timestamp).toLocaleString()}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--neutral-400)' }}>Device:</span>
+              <span className="badge excellent" style={{ fontSize: '11px' }}>
+                🟢 Active
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Carbon Intelligence Section */}
+        <div className="dashboard-section">
+          <div className="dashboard-section-header">
+            <h3>🌍 Carbon Intelligence</h3>
+            <p>Understanding your farm's carbon footprint and sustainability performance</p>
+          </div>
+          <div className="dashboard-grid">
+            {carbonPosition && <CarbonPositionCard data={carbonPosition} />}
+            {cri && <CRICard data={cri} carbonPosition={carbonPosition} />}
+            {carbonPosition && cri && <CarbonOpportunityCard carbonPosition={carbonPosition} cri={cri} />}
+            {carbonPosition && <ClimateImpactCard carbonPosition={carbonPosition} />}
+          </div>
+        </div>
+
+        {/* Environmental Conditions Section */}
+        <div className="dashboard-section">
+          <div className="dashboard-section-header">
+            <h3>🌤️ Environmental Conditions</h3>
+            <p>Real-time monitoring of soil and weather conditions</p>
+          </div>
+          <div className="dashboard-grid">
+            {sensorData && <SensorDataCard data={sensorData} />}
+          </div>
         </div>
 
         {historicalTrends && (

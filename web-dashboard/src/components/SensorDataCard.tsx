@@ -97,6 +97,16 @@ function SensorDataCard({ data }: Props) {
                 }}
               />
             </div>
+            <div style={{
+              marginTop: '8px',
+              fontSize: '11px',
+              color: 'var(--neutral-500)',
+              fontStyle: 'italic'
+            }}>
+              {data.readings.soilMoisture < 30 ? 'Low soil moisture detected. Monitor irrigation if conditions persist.' :
+               data.readings.soilMoisture > 70 ? 'High soil moisture detected. Ensure adequate drainage.' :
+               'Healthy moisture level for most crops'}
+            </div>
           </div>
 
           <div className="sensor-reading">
@@ -108,6 +118,16 @@ function SensorDataCard({ data }: Props) {
             </div>
             <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--neutral-400)', fontWeight: 500 }}>
               Optimal: 20–25°C
+            </div>
+            <div style={{
+              marginTop: '4px',
+              fontSize: '11px',
+              color: 'var(--neutral-500)',
+              fontStyle: 'italic'
+            }}>
+              {data.readings.soilTemperature > 30 ? 'Higher soil temperature detected. Mulching may help regulate soil temperature.' :
+               data.readings.soilTemperature < 15 ? 'Lower soil temperature detected. Growth rates may be affected.' :
+               'Temperature within optimal range'}
             </div>
           </div>
 

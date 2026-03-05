@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { CarbonReadinessIndex } from '../types';
+import type { CarbonReadinessIndex, CarbonPosition } from '../types';
 
 interface Props {
   data: CarbonReadinessIndex;
+  carbonPosition?: CarbonPosition | null;
 }
 
-function CRICard({ data }: Props) {
+function CRICard({ data, carbonPosition }: Props) {
   const [expanded, setExpanded] = useState(false);
   const { carbonReadinessIndex, socTrend } = data;
 
@@ -34,13 +35,32 @@ function CRICard({ data }: Props) {
     return 'var(--red-400)';
   };
 
+  const getInterpretationMessage = () => {
+    const isSink = carbonPosition?.classification === 'Net Carbon Sink';
+    const socStatus = socTrend.status;
+    
+    if (isSink && socStatus === 'Improving') {
+      return 'Your farm is acting as a Net Carbon Sink and actively improving soil carbon levels.';
+    } else if (isSink && socStatus === 'Stable') {
+      return 'Your farm is acting as a Net Carbon Sink and maintaining healthy soil carbon levels.';
+    } else if (isSink) {
+      return 'Your farm is acting as a Net Carbon Sink, sequestering more carbon than it emits.';
+    } else if (socStatus === 'Improving') {
+      return 'Your farm is improving soil carbon levels. Focus on reducing emissions to become carbon neutral.';
+    } else if (socStatus === 'Declining') {
+      return 'Your farm needs attention. Consider practices to reduce emissions and improve soil health.';
+    } else {
+      return 'Your farm is being monitored. Continue sustainable practices to improve your score.';
+    }
+  };
+
   const circumference = 2 * Math.PI * 75;
   const strokeDashoffset = circumference - (carbonReadinessIndex.score / 100) * circumference;
 
   return (
     <div className="card">
       <div className="card-header-toggle" onClick={() => setExpanded(!expanded)}>
-        <h2>⭐ Carbon Readiness Index</h2>
+        <h2>⭐ Farm Sustainability Score</h2>
         <span className={`card-chevron ${expanded ? 'expanded' : ''}`}>▼</span>
       </div>
 
@@ -131,10 +151,45 @@ function CRICard({ data }: Props) {
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <span className={getClassificationBadge(carbonReadinessIndex.classification)}>
-            {carbonReadinessIndex.classification}
-          </span>
+        <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--neutral-400)', marginBottom: '8px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Carbon Readiness Index (CRI)
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <span className={getClassificationBadge(carbonReadinessIndex.classification)}>
+              {carbonReadinessIndex.classification === 'Excellent' ? '🟢 Excellent' :
+               carbonReadinessIndex.classification === 'Moderate' ? '🟡 Moderate' : '🔴 Needs Improvement'}
+            </span>
+            {/* Trend indicator - placeholder for future implementation */}
+            {carbonReadinessIndex.score >= 70 && (
+              <span style={{
+                fontSize: '11px',
+                color: 'var(--green-400)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                ↑ Improving
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Interpretation Message */}
+        <div style={{
+          background: 'var(--bg-elevated)',
+          padding: '14px 16px',
+          borderRadius: '10px',
+          marginBottom: '24px',
+          border: '1px solid var(--border-subtle)',
+          fontSize: '13px',
+          color: 'var(--neutral-600)',
+          lineHeight: '1.6',
+          textAlign: 'center'
+        }}>
+          <span style={{ marginRight: '6px' }}>💡</span>
+          {getInterpretationMessage()}
         </div>
 
         <div className="component-breakdown">
@@ -199,12 +254,26 @@ function CRICard({ data }: Props) {
         </div>
 
         <div className="breakdown" style={{ marginTop: '20px' }}>
-          <h3>🌾 SOC Trend Analysis</h3>
+          <h3>🌾 Soil Carbon Trend</h3>
           <div className="breakdown-item">
             <span className="breakdown-label">Status</span>
-            <span className={getSOCBadge(socTrend.status)}>
-              {socTrend.status}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className={getSOCBadge(socTrend.status)}>
+                {socTrend.status === 'Improving' ? '🟢 Improving' :
+                 socTrend.status === 'Stable' ? '🟡 Stable' :
+                 socTrend.status === 'Declining' ? '🔴 Declining' : socTrend.status}
+              </span>
+              {socTrend.status === 'Improving' && (
+                <span style={{ fontSize: '11px', color: 'var(--green-400)', fontWeight: 600 }}>
+                  ↑ Increasing trend
+                </span>
+              )}
+              {socTrend.status === 'Declining' && (
+                <span style={{ fontSize: '11px', color: 'var(--red-400)', fontWeight: 600 }}>
+                  ↓ Decreasing trend
+                </span>
+              )}
+            </div>
           </div>
           {socTrend.score !== undefined && (
             <div className="breakdown-item">

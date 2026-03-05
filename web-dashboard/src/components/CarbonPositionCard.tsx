@@ -75,8 +75,20 @@ function CarbonPositionCard({ data }: Props) {
           </div>
           <div style={{ marginTop: '12px' }}>
             <span className={getBadgeClass(data.classification)}>
-              {data.classification}
+              {data.classification === 'Net Carbon Sink' ? '🟢 Excellent' : '🔴 Needs Improvement'}
             </span>
+          </div>
+          {/* Simple explanation */}
+          <div style={{
+            marginTop: '12px',
+            fontSize: '12px',
+            color: 'var(--neutral-500)',
+            lineHeight: '1.5',
+            fontStyle: 'italic'
+          }}>
+            {isSink 
+              ? '✓ Your farm removes more CO₂ from the air than it produces' 
+              : '⚠ Your farm produces more CO₂ than it removes'}
           </div>
         </div>
 
@@ -133,12 +145,34 @@ function CarbonPositionCard({ data }: Props) {
               +{annualSequestration.toFixed(2)} kg CO₂e/yr
             </span>
           </div>
+          <div style={{
+            fontSize: '11px',
+            color: 'var(--neutral-500)',
+            marginTop: '4px',
+            marginBottom: '12px',
+            fontStyle: 'italic',
+            paddingLeft: '28px'
+          }}>
+            Carbon your farm removes from the atmosphere each year
+          </div>
+          
           <div className="breakdown-item">
             <span className="breakdown-label">💨 Total Emissions</span>
             <span className="breakdown-value" style={{ color: 'var(--red-400)' }}>
               -{totalEmissions.toFixed(2)} kg CO₂e/yr
             </span>
           </div>
+          <div style={{
+            fontSize: '11px',
+            color: 'var(--neutral-500)',
+            marginTop: '4px',
+            marginBottom: '12px',
+            fontStyle: 'italic',
+            paddingLeft: '28px'
+          }}>
+            Carbon released from farming activities
+          </div>
+          
           <div className="breakdown-item" style={{ paddingLeft: '20px' }}>
             <span className="breakdown-label" style={{ fontSize: '12px' }}>• Fertilizer</span>
             <span className="breakdown-value" style={{ fontSize: '12px' }}>
