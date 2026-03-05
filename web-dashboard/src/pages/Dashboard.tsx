@@ -33,9 +33,18 @@ function Dashboard() {
       setError(null);
 
       try {
-        const [positionData, criData, sensorDataResult, trendsData, metadataResult] = await Promise.all([
+        // Fetch data sequentially in batches to avoid throttling
+        // Batch 1: Critical data
+        const [positionData, criData] = await Promise.all([
           api.getCarbonPosition(farmId),
-          api.getCarbonReadinessIndex(farmId),
+          api.getCarbonReadinessIndex(farmId)
+        ]);
+
+        // Small delay to avoid throttling
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Batch 2: Supporting data
+        const [sensorDataResult, trendsData, metadataResult] = await Promise.all([
           api.getLatestSensorData(farmId),
           api.getHistoricalTrends(farmId, 365),
           api.getFarmMetadata(farmId)
