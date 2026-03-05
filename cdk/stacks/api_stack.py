@@ -148,7 +148,30 @@ class ApiStack(Stack):
         # API v1 resource
         api_v1 = self.api.root.add_resource("api").add_resource("v1")
 
-        # Farm metadata endpoints
+        # Farm metadata endpoints - /api/v1/farm-metadata/{farmId}
+        farm_metadata_resource = api_v1.add_resource("farm-metadata")
+        farm_metadata_id = farm_metadata_resource.add_resource("{farmId}")
+        
+        farm_metadata_id.add_method(
+            "GET",
+            apigateway.LambdaIntegration(self.farm_metadata_lambda),
+            authorizer=authorizer,
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+        )
+        farm_metadata_id.add_method(
+            "POST",
+            apigateway.LambdaIntegration(self.farm_metadata_lambda),
+            authorizer=authorizer,
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+        )
+        farm_metadata_id.add_method(
+            "PUT",
+            apigateway.LambdaIntegration(self.farm_metadata_lambda),
+            authorizer=authorizer,
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+        )
+
+        # Farm dashboard endpoints - /api/v1/farms/{farmId}/*
         farms = api_v1.add_resource("farms")
         farm = farms.add_resource("{farmId}")
         metadata = farm.add_resource("metadata")

@@ -16,6 +16,22 @@ export interface CarbonPosition {
   unit: string;
 }
 
+export interface FarmMetadata {
+  farmId: string;
+  version: number;
+  cropType: 'cashew' | 'coconut';
+  farmSizeHectares: number;
+  treeAge: number;
+  plantationDensity: number;
+  dbh?: number;
+  treeHeight?: number;
+  fertilizerUsage?: number;
+  irrigationActivity?: number;
+  location?: string;
+  farmName?: string;
+  updatedAt: string;
+}
+
 export interface CarbonReadinessIndex {
   farmId: string;
   carbonReadinessIndex: {

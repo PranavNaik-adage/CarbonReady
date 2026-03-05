@@ -4,6 +4,7 @@ import type {
   SensorData,
   HistoricalTrends,
   CRIWeights,
+  FarmMetadata,
   ApiError
 } from './types';
 import { fetchAuthSession } from 'aws-amplify/auth';
@@ -214,6 +215,10 @@ class ApiClient {
 
   async getHistoricalTrends(farmId: string, days: number = 365): Promise<HistoricalTrends> {
     return this.request<HistoricalTrends>(`/v1/farms/${farmId}/historical-trends?days=${days}`);
+  }
+
+  async getFarmMetadata(farmId: string): Promise<FarmMetadata> {
+    return this.request<FarmMetadata>(`/v1/farm-metadata/${farmId}`);
   }
 
   async getCRIWeights(): Promise<CRIWeights> {

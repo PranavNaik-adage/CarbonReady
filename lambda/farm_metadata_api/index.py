@@ -32,7 +32,7 @@ def lambda_handler(event, context):
             "message": "Farm Metadata API request",
             "httpMethod": http_method,
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         if not farm_id:
@@ -53,7 +53,7 @@ def lambda_handler(event, context):
         print(json.dumps({
             "level": "WARNING",
             "message": "Invalid JSON in request body",
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return create_response(400, {'error': 'Invalid JSON in request body'}, context)
     except Exception as e:
@@ -67,7 +67,7 @@ def lambda_handler(event, context):
             "httpMethod": event.get('httpMethod'),
             "farmId": event.get('pathParameters', {}).get('farmId'),
             "functionName": context.function_name,
-            "requestId": context.request_id,
+            "requestId": context.aws_request_id,
             "timestamp": datetime.utcnow().isoformat()
         }))
         
@@ -76,7 +76,7 @@ def lambda_handler(event, context):
             send_sns_notification(
                 CRITICAL_ALERTS_TOPIC,
                 "Farm Metadata API Lambda Error",
-                f"Function: {context.function_name}\nError: {str(e)}\nRequestId: {context.request_id}"
+                f"Function: {context.function_name}\nError: {str(e)}\nRequestId: {context.aws_request_id}"
             )
         
         return create_response(500, {'error': 'Internal server error'}, context)
@@ -89,7 +89,7 @@ def create_response(status_code, body, context):
         "level": "INFO" if status_code < 400 else "WARNING",
         "message": "API response",
         "statusCode": status_code,
-        "requestId": context.request_id
+        "requestId": context.aws_request_id
     }))
     
     return {
@@ -128,7 +128,7 @@ def get_farm_metadata(farm_id, context):
             "error": str(e),
             "errorType": type(e).__name__,
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return create_response(500, {'error': 'Unable to retrieve farm metadata'}, context)
 
@@ -144,7 +144,7 @@ def create_farm_metadata(farm_id, metadata, context):
             "message": "Farm metadata validation failed",
             "farmId": farm_id,
             "validationErrors": validation_result['errors'],
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         return create_response(400, {
@@ -170,7 +170,7 @@ def create_farm_metadata(farm_id, metadata, context):
             "message": "Farm metadata created successfully",
             "farmId": farm_id,
             "version": 1,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         return create_response(201, item, context)
@@ -182,7 +182,7 @@ def create_farm_metadata(farm_id, metadata, context):
             "error": str(e),
             "errorType": type(e).__name__,
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return create_response(500, {'error': 'Unable to create farm metadata'}, context)
 
@@ -198,7 +198,7 @@ def update_farm_metadata(farm_id, metadata, context):
             "message": "Farm metadata validation failed",
             "farmId": farm_id,
             "validationErrors": validation_result['errors'],
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         return create_response(400, {
@@ -234,7 +234,7 @@ def update_farm_metadata(farm_id, metadata, context):
             "message": "Farm metadata updated successfully",
             "farmId": farm_id,
             "version": latest_version + 1,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         
         return create_response(200, item, context)
@@ -246,7 +246,7 @@ def update_farm_metadata(farm_id, metadata, context):
             "error": str(e),
             "errorType": type(e).__name__,
             "farmId": farm_id,
-            "requestId": context.request_id
+            "requestId": context.aws_request_id
         }))
         return create_response(500, {'error': 'Unable to update farm metadata'}, context)
 

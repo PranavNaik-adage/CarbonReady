@@ -5,7 +5,8 @@ import type {
   CarbonPosition,
   CarbonReadinessIndex,
   SensorData,
-  HistoricalTrends
+  HistoricalTrends,
+  FarmMetadata
 } from '../types';
 import CarbonPositionCard from '../components/CarbonPositionCard';
 import CRICard from '../components/CRICard';
@@ -20,6 +21,7 @@ function Dashboard() {
   const [cri, setCRI] = useState<CarbonReadinessIndex | null>(null);
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
   const [historicalTrends, setHistoricalTrends] = useState<HistoricalTrends | null>(null);
+  const [farmMetadata, setFarmMetadata] = useState<FarmMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,22 +33,25 @@ function Dashboard() {
       setError(null);
 
       try {
-        const [positionData, criData, sensorDataResult, trendsData] = await Promise.all([
+        const [positionData, criData, sensorDataResult, trendsData, metadataResult] = await Promise.all([
           api.getCarbonPosition(farmId),
           api.getCarbonReadinessIndex(farmId),
           api.getLatestSensorData(farmId),
-          api.getHistoricalTrends(farmId, 365)
+          api.getHistoricalTrends(farmId, 365),
+          api.getFarmMetadata(farmId)
         ]);
 
         console.log('Carbon Position Data:', positionData);
         console.log('CRI Data:', criData);
         console.log('Sensor Data:', sensorDataResult);
         console.log('Historical Trends:', trendsData);
+        console.log('Farm Metadata:', metadataResult);
 
         setCarbonPosition(positionData);
         setCRI(criData);
         setSensorData(sensorDataResult);
         setHistoricalTrends(trendsData);
+        setFarmMetadata(metadataResult);
       } catch (err) {
         console.error('Dashboard fetch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
@@ -106,28 +111,36 @@ function Dashboard() {
               <span className="farm-summary-icon">🏡</span>
               <div>
                 <div className="farm-summary-label">Farm Name</div>
-                <div className="farm-summary-value">{farmId}</div>
+                <div className="farm-summary-value">{farmMetadata?.farmName || farmId}</div>
               </div>
             </div>
             <div className="farm-summary-item">
               <span className="farm-summary-icon">📍</span>
               <div>
                 <div className="farm-summary-label">Location</div>
-                <div className="farm-summary-value">Kerala, India</div>
+                <div className="farm-summary-value">{farmMetadata?.location || 'Not specified'}</div>
               </div>
             </div>
             <div className="farm-summary-item">
               <span className="farm-summary-icon">🌴</span>
               <div>
                 <div className="farm-summary-label">Crop Type</div>
-                <div className="farm-summary-value">Coconut & Cashew</div>
+                <div className="farm-summary-value">
+                  {farmMetadata?.cropType ? 
+                    farmMetadata.cropType.charAt(0).toUpperCase() + farmMetadata.cropType.slice(1) : 
+                    'Not specified'}
+                </div>
               </div>
             </div>
             <div className="farm-summary-item">
               <span className="farm-summary-icon">📏</span>
               <div>
                 <div className="farm-summary-label">Farm Size</div>
-                <div className="farm-summary-value">1.2 ha</div>
+                <div className="farm-summary-value">
+                  {farmMetadata?.farmSizeHectares ? 
+                    `${Number(farmMetadata.farmSizeHectares).toFixed(1)} ha` : 
+                    'Not specified'}
+                </div>
               </div>
             </div>
           </div>
