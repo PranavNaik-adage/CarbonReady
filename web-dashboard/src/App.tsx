@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import AdminPanel from './pages/AdminPanel'
+import FarmerDashboard from './pages/FarmerDashboard'
 import './App.css'
 
 function Sidebar() {
@@ -13,6 +14,7 @@ function Sidebar() {
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return location.pathname.startsWith('/dashboard')
+    if (path === '/farmer-dashboard') return location.pathname === '/farmer-dashboard'
     return location.pathname === path
   }
 
@@ -56,6 +58,14 @@ function Sidebar() {
           >
             <span className="sidebar-nav-icon">📊</span>
             Dashboard
+          </Link>
+          <Link
+            to="/farmer-dashboard"
+            className={isActive('/farmer-dashboard') ? 'active' : ''}
+            onClick={() => setMobileOpen(false)}
+          >
+            <span className="sidebar-nav-icon">🌾</span>
+            Farmer View
           </Link>
           <Link
             to="/admin"
@@ -108,10 +118,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         background: 'linear-gradient(135deg, #1a4d2e 0%, #2d5a3d 100%)',
         color: 'white'
@@ -154,6 +164,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/farmer-dashboard"
+            element={
+              <ProtectedRoute>
+                <FarmerDashboard />
               </ProtectedRoute>
             }
           />

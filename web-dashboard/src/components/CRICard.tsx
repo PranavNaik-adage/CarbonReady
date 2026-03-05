@@ -72,20 +72,29 @@ function CRICard({ data }: Props) {
         <div className="card-header-divider" />
 
         {/* Circular Progress Indicator */}
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0', padding: '30px 0' }}>
           <div style={{ position: 'relative', width: '180px', height: '180px' }}>
-            <svg width="180" height="180" style={{ transform: 'rotate(-90deg)' }}>
+            <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+              <defs>
+                <filter id="criGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
               <circle
-                cx="90"
-                cy="90"
+                cx="100"
+                cy="100"
                 r="75"
                 fill="none"
                 stroke="rgba(255,255,255,0.06)"
                 strokeWidth="12"
               />
               <circle
-                cx="90"
-                cy="90"
+                cx="100"
+                cy="100"
                 r="75"
                 fill="none"
                 stroke={getScoreColor(carbonReadinessIndex.score)}
@@ -93,9 +102,9 @@ function CRICard({ data }: Props) {
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
+                filter="url(#criGlow)"
                 style={{
-                  transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                  filter: `drop-shadow(0 0 8px ${getScoreColor(carbonReadinessIndex.score)})`
+                  transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}
               />
             </svg>
