@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import '../App.css';
 
+// Check if we're in demo mode
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -156,11 +159,28 @@ export default function Login() {
           fontSize: '0.85rem',
           color: '#666'
         }}>
-          <p>Test Credentials:</p>
-          <p style={{ fontFamily: 'monospace', marginTop: '0.5rem' }}>
-            Username: testuser<br/>
-            Password: [Your password]
-          </p>
+          {USE_MOCK_DATA ? (
+            <div style={{
+              padding: '1rem',
+              background: '#f0f9ff',
+              borderRadius: '8px',
+              border: '1px solid #0ea5e9'
+            }}>
+              <p style={{ color: '#0369a1', fontWeight: '600', marginBottom: '0.5rem' }}>
+                🌱 Pilot Deployment
+              </p>
+              <p style={{ color: '#555', fontSize: '0.8rem' }}>
+                Use your credentials to access the pilot farm dashboard
+              </p>
+            </div>
+          ) : (
+            <>
+              <p>Production Access:</p>
+              <p style={{ fontFamily: 'monospace', marginTop: '0.5rem' }}>
+                Contact admin for credentials
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

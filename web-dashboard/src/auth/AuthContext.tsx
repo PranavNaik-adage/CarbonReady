@@ -12,6 +12,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Check if we're in demo mode (using mock data)
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function checkUser() {
     try {
+      // In mock data mode, don't auto-login - require explicit login
+      if (USE_MOCK_DATA) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       const currentUser = await getCurrentUser();
       setUser(currentUser);
     } catch (error) {
@@ -33,6 +43,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(username: string, password: string) {
     try {
+      // In demo mode, accept any credentials
+      if (USE_MOCK_DATA) {
+        console.log('Pilot mode: Bypassing authentication');
+        setUser({
+          username: username || 'pilot-admin',
+          userId: 'admin-001',
+          attributes: {
+            email: 'admin@carbonready.com'
+          }
+        });
+        return;
+      }
+
       console.log('Attempting login for user:', username);
       const result = await signIn({ username, password });
       console.log('SignIn result:', result);
@@ -54,6 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     try {
+      // In demo mode, just clear the user
+      if (USE_MOCK_DATA) {
+        console.log('Logging out');
+        setUser(null);
+        return;
+      }
+
       await signOut();
       setUser(null);
     } catch (error) {

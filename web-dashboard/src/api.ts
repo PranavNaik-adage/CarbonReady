@@ -72,22 +72,24 @@ class ApiClient {
     await new Promise(resolve => setTimeout(resolve, 300));
 
     if (endpoint.includes('/carbon-position')) {
-      const calculatedAt = new Date(Date.now() - 3600000).toISOString();
+      // Realistic data for a 5-hectare coconut farm in Goa
+      // Coconut farms are typically carbon sinks due to high biomass
+      const calculatedAt = new Date(Date.now() - 900000).toISOString(); // 15 min ago (sensor interval)
       const isStale = Date.now() - new Date(calculatedAt).getTime() > 24 * 60 * 60 * 1000;
       
       return {
         farmId: 'farm-001',
-        netCarbonPosition: 1250.75,
+        netCarbonPosition: 2847.50, // Positive = carbon sink (realistic for coconut)
         classification: 'Net Carbon Sink',
-        annualSequestration: 2100.50,
+        annualSequestration: 3450.75, // ~690 kg CO2e per hectare for coconut
         emissions: {
-          fertilizerEmissions: 549.25,
-          irrigationEmissions: 300.50,
-          totalEmissions: 849.75,
+          fertilizerEmissions: 425.50, // Organic farming, minimal fertilizer
+          irrigationEmissions: 177.75, // Drip irrigation, low energy
+          totalEmissions: 603.25,
           unit: 'kg CO2e/year'
         },
-        carbonStock: 15420.30,
-        co2EquivalentStock: 56525.50,
+        carbonStock: 75000, // Above-ground biomass: 625 trees × 120 kg C/tree
+        co2EquivalentStock: 275250, // 75,000 kg C × 3.67 = 275,250 kg CO2e
         calculatedAt,
         isStale,
         unit: 'kg CO2e/year'
@@ -98,79 +100,128 @@ class ApiClient {
       return {
         farmId: 'farm-001',
         carbonReadinessIndex: {
-          score: 72.5,
+          score: 78.5, // Good score for pilot farm
           classification: 'Excellent',
           components: {
             netCarbonPosition: {
-              score: 85,
+              score: 88, // Strong carbon sink
               weight: 0.5,
-              contribution: 42.5
+              contribution: 44.0
             },
             socTrend: {
-              score: 60,
+              score: 72, // Improving soil organic carbon
               weight: 0.3,
-              contribution: 18.0
+              contribution: 21.6
             },
             managementPractices: {
-              score: 60,
+              score: 65, // Good practices, room for improvement
               weight: 0.2,
-              contribution: 12.0
+              contribution: 13.0
             }
           },
           scoringLogicVersion: 'v1.0.0',
-          calculatedAt: new Date(Date.now() - 3600000).toISOString()
+          calculatedAt: new Date(Date.now() - 900000).toISOString() // 15 min ago
         },
         socTrend: {
           status: 'Improving',
-          score: 0.15,
-          biomassReturn: 12.5,
-          managementScore: 0.75,
-          dataSpanDays: 120
+          score: 0.18, // Positive trend
+          biomassReturn: 14.2, // Good organic matter return
+          managementScore: 0.72,
+          dataSpanDays: 90 // 3 months of pilot data
         },
-        netCarbonPosition: 1250.75
+        netCarbonPosition: 2847.50
       } as T;
     }
 
     if (endpoint.includes('/sensor-data/latest')) {
-      // Using actual data from esp32-test device
+      // Realistic sensor data for Goa climate (tropical coastal)
+      // Data from 15 minutes ago (sensor sends every 15 min)
+      const timestamp = new Date(Date.now() - 900000).toISOString();
+      
       return {
         farmId: 'farm-001',
-        deviceId: 'esp32-test',
-        timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
+        deviceId: 'esp32-farm-001',
+        timestamp: timestamp,
         readings: {
-          soilMoisture: 54.0,  // From your ESP32
-          soilTemperature: 24.0,  // From your ESP32
-          airTemperature: 27.0,  // From your ESP32
-          humidity: 55.0  // From your ESP32
+          soilMoisture: 52.3,  // Good moisture for coconut (45-60% optimal)
+          soilTemperature: 26.8,  // Typical for Goa laterite soil
+          airTemperature: 31.2,  // Goa daytime temperature
+          humidity: 78.5  // High humidity typical for coastal Goa
         },
         validationStatus: 'valid'
       } as T;
     }
 
     if (endpoint.includes('/historical-trends')) {
+      // Generate 90 days of realistic pilot data (3 months)
       const trends = [];
       const now = Date.now();
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date(now - i * 30 * 24 * 60 * 60 * 1000);
-        const baseSequestration = 1800;
-        const baseEmissions = 700;
-        const sequestration = baseSequestration + Math.random() * 600;
-        const emissions = baseEmissions + Math.random() * 300;
+      const daysOfData = 90; // Pilot phase: 3 months
+      
+      for (let i = daysOfData - 1; i >= 0; i--) {
+        const date = new Date(now - i * 24 * 60 * 60 * 1000);
+        
+        // Simulate seasonal variation for Goa
+        // Monsoon season (June-Sept): higher sequestration, lower emissions
+        const month = date.getMonth();
+        const isMonsoon = month >= 5 && month <= 8;
+        
+        // Base values for coconut farm
+        const baseSequestration = 3450;
+        const baseEmissions = 600;
+        
+        // Add realistic variation
+        const seasonalFactor = isMonsoon ? 1.15 : 0.95; // Higher growth in monsoon
+        const randomVariation = 0.9 + Math.random() * 0.2; // ±10% daily variation
+        
+        const sequestration = baseSequestration * seasonalFactor * randomVariation;
+        const emissions = baseEmissions * (isMonsoon ? 0.85 : 1.05) * randomVariation; // Lower irrigation in monsoon
+        
+        // CRI improves over time as practices improve
+        const criImprovement = Math.min(10, i / 9); // Up to 10 point improvement
+        const baseCRI = 68;
         
         trends.push({
           date: date.toISOString().split('T')[0],
           netCarbonPosition: sequestration - emissions,
           annualSequestration: sequestration,
           totalEmissions: emissions,
-          carbonReadinessIndex: 60 + Math.random() * 20,
-          socTrend: i < 4 ? 'Improving' : i < 8 ? 'Stable' : 'Improving'
+          carbonReadinessIndex: baseCRI + criImprovement + (Math.random() * 4 - 2), // Some noise
+          socTrend: i < 30 ? 'Improving' : i < 60 ? 'Stable' : 'Improving'
         });
       }
+      
       return {
         farmId: 'farm-001',
-        days: 365,
+        days: daysOfData,
         dataPoints: trends.length,
-        trends
+        trends: trends.reverse() // Oldest to newest
+      } as T;
+    }
+
+    if (endpoint.includes('/farm-metadata')) {
+      return {
+        farmId: 'farm-001',
+        farmName: 'Pilot Farm - Goa',
+        location: 'Ponda, Goa, India',
+        cropType: 'coconut',
+        farmSizeHectares: 5.0,
+        soilType: 'laterite', // Common in Goa
+        irrigationType: 'drip',
+        ownerName: 'Farm Owner',
+        registeredDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days ago
+        deviceIds: ['esp32-farm-001'],
+        coordinates: {
+          latitude: 15.4909, // Ponda, Goa
+          longitude: 74.0120
+        },
+        additionalInfo: {
+          treeCount: 625, // ~125 trees per hectare for coconut
+          averageTreeAge: 15, // Mature productive trees
+          plantingYear: 2010,
+          certifications: ['Organic (in progress)'],
+          notes: 'Pilot deployment - Phase 1. Sensors installed 3 months ago. Baseline data collection complete.'
+        }
       } as T;
     }
 
