@@ -453,7 +453,9 @@ void registerDevice() {
                 "\",\"is_active\":true,\"firmware_version\":\"1.0.0\"}";
 
   Serial.printf("[%s] Registering device...\n", timestampClock().c_str());
-  int status = supabasePost("/rest/v1/devices", body, true);
+  // on_conflict=device_id so the upsert merges on the unique device_id column
+  // (not the UUID primary key), making re-registration idempotent instead of 409.
+  int status = supabasePost("/rest/v1/devices?on_conflict=device_id", body, true);
 
   if (status >= 200 && status < 300) {
     Serial.printf("[%s] Device registered (%d)\n", timestampClock().c_str(), status);

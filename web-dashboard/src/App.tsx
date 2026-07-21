@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import AdminPanel from './pages/AdminPanel'
 import FarmerDashboard from './pages/FarmerDashboard'
+import SensorMonitor from './pages/SensorMonitor'
 import './App.css'
 
 function Sidebar() {
@@ -66,6 +67,14 @@ function Sidebar() {
           >
             <span className="sidebar-nav-icon">🌾</span>
             Farmer View
+          </Link>
+          <Link
+            to="/sensors"
+            className={isActive('/sensors') ? 'active' : ''}
+            onClick={() => setMobileOpen(false)}
+          >
+            <span className="sidebar-nav-icon">📡</span>
+            Sensor Data
           </Link>
           <Link
             to="/admin"
@@ -172,6 +181,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <FarmerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sensors"
+            element={
+              <ProtectedRoute>
+                <SensorMonitor />
               </ProtectedRoute>
             }
           />
